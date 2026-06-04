@@ -1,0 +1,32 @@
+# k3s-gitops/infrastructure/adguard/service-dns.yaml
+# ---
+# Dedicated LoadBalancer service for DNS traffic at the reserved IP 10.10.10.10.
+# Configure your router's DNS server to point at 10.10.10.10.
+# autoAssign is false on the MetalLB pool; the IP is pinned via annotation.
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguard-dns
+  namespace: adguard
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    metallb.universe.tf/loadBalancerIPs: "10.10.10.10"
+    metallb.universe.tf/address-pool: "infrastructure-pool"
+  labels:
+    app: adguard
+    app.kubernetes.io/name: adguard-home
+spec:
+  type: LoadBalancer
+  loadBalancerIP: "10.10.10.10"
+  externalTrafficPolicy: Local
+  selector:
+    app: adguard
+  ports:
+    - name: dns-tcp
+      port: 53
+      targetPort: 53
+      protocol: TCP
+    - name: dns-udp
+      port: 53
+      targetPort: 53
+      protocol: UDP

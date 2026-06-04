@@ -1,0 +1,29 @@
+# k3s-gitops/bootstrap/root-app.yaml
+# ---
+# The App of Apps root application. Applied once by Ansible after ArgoCD
+# is installed. Every file under bootstrap/apps/ becomes an ArgoCD Application
+# managed by this root app.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RockBrackenshield/k3s-gitops
+    targetRevision: HEAD
+    path: bootstrap/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

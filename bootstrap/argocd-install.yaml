@@ -1,0 +1,19 @@
+# k3s-gitops/bootstrap/argocd-install.yaml
+# ---
+# This file documents what the Ansible argocd_bootstrap role does automatically.
+# To install ArgoCD manually without Ansible:
+#
+#   kubectl create namespace argocd
+#   kubectl apply -n argocd \
+#     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+#   kubectl patch configmap argocd-cmd-params-cm -n argocd \
+#     --type merge -p '{"data": {"server.insecure": "true"}}'
+#   kubectl rollout restart deployment argocd-server -n argocd
+#
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: argocd

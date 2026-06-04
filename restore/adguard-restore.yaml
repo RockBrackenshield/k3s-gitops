@@ -1,0 +1,46 @@
+# k3s-gitops/restore/adguard-restore.yaml
+# ---
+# VolSync ReplicationDestination — restores the AdGuard config PVC from
+# Backblaze B2 using restic with copyMethod: Direct.
+#
+# copyMethod: Direct writes the restored data straight into an existing PVC.
+# This is simpler than Snapshot mode (no intermediate VolumeSnapshot step).
+#
+# COMPLETE RESTORE PROCEDURE (run in this exact order):
+#
+#   Step 1 — Scale down AdGuard:
+#     kubectl scale deployment adguard-home -n adguard --replicas=0
+#
+#   Step 2 — Delete the existing (empty or corrupt) PVC:
+#     kubectl delete pvc adguard-config -n adguard
+#
+#   Step 3 — Create a fresh empty target PVC (apply FIRST):
+#     kubectl apply -f restore/adguard-pvc-final.yaml
+#
+#   Step 4 — Apply this ReplicationDestination to trigger the restore:
+#     kubectl apply -f restore/adguard-restore.yaml
+#
+#   Step 5 — Watch for completion:
+#     kubectl get replicationdestination adguard-config-restore -n adguard -w
+#     (wait for .status.lastSyncTime to be populated)
+#
+#   Step 6 — Delete this ReplicationDestination (data is now in the PVC):
+#     kubectl delete -f restore/adguard-restore.yaml
+#
+#   Step 7 — Scale AdGuard back up:
+#     kubectl scale deployment adguard-home -n adguard --replicas=1
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationDestination
+metadata:
+  name: adguard-config-restore
+  namespace: adguard
+spec:
+  trigger:
+    manual: restore-once
+  restic:
+    repository: shared-b2-repo
+    destinationPVC: adguard-config
+    copyMethod: Direct
+    accessModes:
+      - ReadWriteOnce
+    capacity: 1Gi

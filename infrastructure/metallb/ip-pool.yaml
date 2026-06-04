@@ -1,0 +1,15 @@
+# k3s-gitops/infrastructure/metallb/ip-pool.yaml
+# ---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: infrastructure-pool
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  addresses:
+    - 10.10.10.10-10.10.10.20
+  autoAssign: false
+  avoidBuggyIPs: true

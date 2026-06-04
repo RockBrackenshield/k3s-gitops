@@ -1,0 +1,15 @@
+# k3s-gitops/ansible/inventory/host_vars/k3s-master.yaml
+# ---
+# Hardware-specific variables for k3s-master.
+# These values are not shared with any other host.
+
+# UUID of the USB drive mounted at /mnt/longhorn-usb for Longhorn storage.
+# Find the UUID by running on k3s-master:
+#   sudo blkid | grep -Ev 'loop|sr0'
+# Replace PLACEHOLDER-UUID with the value from the UUID="..." field.
+longhorn_usb_uuid: "11795d21-3c30-4656-8c79-33f37b95bf21"
+
+# Mount path for the USB drive. Change only if you physically remount it
+# elsewhere — this value is also referenced in the Longhorn Helm chart values
+# and the Longhorn Node CRD, which would need matching updates.
+longhorn_usb_mount: "/mnt/longhorn-usb"

@@ -1,0 +1,7 @@
+# k3s-gitops/ansible/roles/k3s_server/handlers/main.yaml
+# ---
+- name: restart k3s
+  ansible.builtin.systemd:
+    name: k3s
+    state: restarted
+    daemon_reload: true

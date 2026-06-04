@@ -1,0 +1,36 @@
+# k3s-gitops/infrastructure/longhorn/node-disk-config.yaml
+# ---
+# Reconciles the Longhorn Node resource for k3s-master to ensure the USB disk
+# carries the correct tags (usb on the disk, usb-node on the node). These tags
+# are referenced by the longhorn-usb StorageClass diskSelector and nodeSelector.
+#
+# Longhorn auto-creates the Node resource when k3s-master registers. Because
+# createDefaultDiskLabeledNodes: true and k3s-master has the label
+# node.longhorn.io/create-default-disk=true, Longhorn auto-creates one disk at
+# /mnt/longhorn-usb. This manifest reconciles the tags onto the node and disk
+# configuration. kubectl apply performs a strategic merge, so the auto-created
+# disk entry is preserved alongside the tags we set here on the node spec.
+#
+# Apply only after Longhorn is fully running (sync-wave 1).
+apiVersion: longhorn.io/v1beta2
+kind: Node
+metadata:
+  name: k3s-master
+  namespace: longhorn-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  allowScheduling: true
+  evictionRequested: false
+  tags:
+    - usb-node
+  disks:
+    usb-longhorn-disk:
+      diskType: filesystem
+      path: /mnt/longhorn-usb
+      allowScheduling: true
+      evictionRequested: false
+      storageReserved: 0
+      tags:
+        - usb

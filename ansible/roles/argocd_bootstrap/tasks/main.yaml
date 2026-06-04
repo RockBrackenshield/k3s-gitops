@@ -1,0 +1,105 @@
+# k3s-gitops/ansible/roles/argocd_bootstrap/tasks/main.yaml
+# ---
+- name: Create ArgoCD namespace
+  ansible.builtin.shell:
+    cmd: |
+      kubectl create namespace argocd \
+        --dry-run=client -o yaml | kubectl apply -f -
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Apply ArgoCD install manifests (stable)
+  ansible.builtin.shell:
+    cmd: |
+      kubectl apply -n argocd \
+        --server-side \
+        --force-conflicts \
+        -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for ArgoCD server deployment to be available
+  ansible.builtin.shell:
+    cmd: |
+      kubectl wait --for=condition=available deployment/argocd-server \
+        -n argocd --timeout=300s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Patch ArgoCD cmd-params ConfigMap for insecure mode
+  ansible.builtin.shell:
+    cmd: |
+      kubectl patch configmap argocd-cmd-params-cm \
+        -n argocd \
+        --type merge \
+        -p '{"data": {"server.insecure": "true"}}'
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Restart ArgoCD server to apply insecure mode
+  ansible.builtin.shell:
+    cmd: kubectl rollout restart deployment argocd-server -n argocd
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for ArgoCD server rollout to complete
+  ansible.builtin.shell:
+    cmd: |
+      kubectl rollout status deployment/argocd-server \
+        -n argocd --timeout=120s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+# --- Sealed Secrets master key (conditional) ---
+# On a fresh install the file contains only YAML comments.
+# kubectl apply returns exit code 1 on a comment-only file, which would
+# fail the play. The grep check makes the copy/apply conditional.
+# On a restore the file contains real key material and all three tasks run.
+
+- name: Check whether sealed-secrets master key file contains a Kubernetes resource
+  ansible.builtin.command:
+    cmd: grep -qE '^kind:' {{ role_path }}/files/sealed-secrets-master-key.yaml
+  register: sealed_key_has_content
+  failed_when: false
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Fresh install — log that sealed-secrets key is placeholder
+  ansible.builtin.debug:
+    msg: >
+      sealed-secrets-master-key.yaml contains no Kubernetes resource (fresh install).
+      The Sealed Secrets controller will generate a new key pair automatically.
+      After bootstrap completes, export and store the key offline immediately.
+      See docs/sealed-secrets-backup.md for the procedure.
+  when: sealed_key_has_content.rc != 0
+
+- name: Restore — copy sealed-secrets master key to remote host
+  ansible.builtin.copy:
+    src: sealed-secrets-master-key.yaml
+    dest: /tmp/sealed-secrets-master-key.yaml
+    mode: "0600"
+  when: sealed_key_has_content.rc == 0
+
+- name: Restore — apply sealed-secrets master key to cluster
+  ansible.builtin.shell:
+    cmd: kubectl apply -f /tmp/sealed-secrets-master-key.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  when: sealed_key_has_content.rc == 0
+
+- name: Restore — delete sealed-secrets master key from remote immediately
+  ansible.builtin.file:
+    path: /tmp/sealed-secrets-master-key.yaml
+    state: absent
+  when: sealed_key_has_content.rc == 0
+
+# --- Apply the GitOps root application ---
+
+- name: Apply ArgoCD root application
+  ansible.builtin.shell:
+    cmd: kubectl apply -f {{ playbook_dir }}/../bootstrap/root-app.yaml
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../kubeconfig.yaml"
+  delegate_to: localhost
+  become: false

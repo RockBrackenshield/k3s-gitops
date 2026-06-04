@@ -1,0 +1,20 @@
+# k3s-gitops/apps/jellyfin/overlays/production/patch-resources.yaml
+# ---
+# Production: allow higher memory limit for transcoding headroom.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+spec:
+  template:
+    spec:
+      containers:
+        - name: jellyfin
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi

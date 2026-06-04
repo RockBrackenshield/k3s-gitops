@@ -1,0 +1,53 @@
+# k3s-gitops/infrastructure/longhorn/helmrelease.yaml
+---
+# K3s HelmChart CRD — instructs the K3s Helm controller to install Longhorn
+# into longhorn-system.
+#
+# createDefaultDiskLabeledNodes: true — Longhorn will NOT auto-create disks on
+# any node unless it carries the label:
+#   node.longhorn.io/create-default-disk: "true"
+#
+# The k3s_server Ansible role labels k3s-master with that key so Longhorn
+# auto-creates a disk at defaultDataPath (/mnt/longhorn-usb) on that node.
+# Worker nodes are NOT labeled, so Longhorn leaves them disk-free. The
+# node-disk-config.yaml Longhorn Node CRD then reconciles the disk tags.
+#
+# Note: This HelmChart resource lives in kube-system (required by K3s Helm
+# controller) but deploys into longhorn-system via targetNamespace.
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: longhorn
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  chart: longhorn
+  repo: https://charts.longhorn.io
+  version: 1.6.0
+  targetNamespace: longhorn-system
+  createNamespace: true
+  valuesContent: |-
+    defaultSettings:
+      defaultDataPath: /mnt/longhorn-usb
+      createDefaultDiskLabeledNodes: true
+      replicaSoftAntiAffinity: true
+      storageMinimalAvailablePercentage: 10
+      defaultReplicaCount: 2
+    persistence:
+      defaultClass: false
+      defaultClassReplicaCount: 2
+      defaultDataLocality: disabled
+      reclaimPolicy: Retain
+    ingress:
+      enabled: false
+    service:
+      ui:
+        type: ClusterIP
+      manager:
+        type: ClusterIP
+    csi:
+      attacherReplicaCount: 1
+      provisionerReplicaCount: 1
+      resizerReplicaCount: 1
+      snapshotterReplicaCount: 1

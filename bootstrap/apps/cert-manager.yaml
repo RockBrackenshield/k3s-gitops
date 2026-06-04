@@ -1,0 +1,37 @@
+# k3s-gitops/bootstrap/apps/cert-manager.yaml
+# ---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - chart: cert-manager
+      repoURL: https://charts.jetstack.io
+      targetRevision: v1.14.0
+      helm:
+        releaseName: cert-manager
+        values: |
+          installCRDs: true
+          extraArgs:
+            - --dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53
+            - --dns01-recursive-nameservers-only
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      path: infrastructure/cert-manager
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

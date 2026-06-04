@@ -1,0 +1,9 @@
+# k3s-gitops/apps/jellyfin/overlays/staging/patch-replicas.yaml
+# ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+spec:
+  replicas: 1

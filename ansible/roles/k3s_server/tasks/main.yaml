@@ -1,0 +1,75 @@
+# k3s-gitops/ansible/roles/k3s_server/tasks/main.yaml
+# ---
+- name: Check if K3s binary already exists
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+
+- name: Download K3s installer script
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s-install.sh
+    mode: "0755"
+  when: not k3s_binary.stat.exists
+
+- name: Install K3s server
+  ansible.builtin.shell:
+    cmd: /tmp/k3s-install.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_EXEC: "server {{ k3s_extra_args }}"
+  when: not k3s_binary.stat.exists
+  notify: restart k3s
+
+- name: Wait for K3s to write the node token
+  ansible.builtin.wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+    state: present
+    timeout: 180
+
+- name: Wait for K3s API server to become available
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 6443
+    state: started
+    timeout: 180
+
+- name: Read K3s node token
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: k3s_node_token_raw
+
+- name: Expose K3s node token as a host fact
+  ansible.builtin.set_fact:
+    k3s_token: "{{ k3s_node_token_raw.content | b64decode | trim }}"
+
+- name: Ensure K3s service is enabled and running
+  ansible.builtin.systemd:
+    name: k3s
+    enabled: true
+    state: started
+
+- name: Label k3s-master for Longhorn USB disk auto-creation
+  # Longhorn reads this label when createDefaultDiskLabeledNodes: true.
+  # Only k3s-master is labeled; workers remain disk-free in Longhorn.
+  ansible.builtin.shell:
+    cmd: |
+      kubectl label node k3s-master \
+        node.longhorn.io/create-default-disk=true \
+        --overwrite
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Fetch kubeconfig to local machine
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "{{ playbook_dir }}/../kubeconfig.yaml"
+    flat: true
+
+- name: Rewrite kubeconfig server address to external IP
+  ansible.builtin.replace:
+    path: "{{ playbook_dir }}/../kubeconfig.yaml"
+    regexp: 'https://127\.0\.0\.1:6443'
+    replace: "https://{{ k3s_master_ip }}:6443"
+  delegate_to: localhost
+  become: false

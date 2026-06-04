@@ -1,0 +1,36 @@
+# k3s-gitops/ansible/bootstrap.yaml
+# ---
+- name: Apply common configuration to all nodes
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: common
+
+- name: Install K3s control plane
+  hosts: control_plane
+  become: true
+  gather_facts: true
+  roles:
+    - role: k3s_server
+
+- name: Install K3s worker agents
+  hosts: workers
+  become: true
+  gather_facts: true
+  roles:
+    - role: k3s_agent
+
+- name: Configure USB storage on control plane
+  hosts: control_plane
+  become: true
+  gather_facts: false
+  roles:
+    - role: usb_storage
+
+- name: Bootstrap ArgoCD and apply GitOps root application
+  hosts: control_plane
+  become: true
+  gather_facts: false
+  roles:
+    - role: argocd_bootstrap

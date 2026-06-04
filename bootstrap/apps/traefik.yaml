@@ -1,0 +1,49 @@
+# k3s-gitops/bootstrap/apps/traefik.yaml
+# ---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RockBrackenshield/k3s-gitops
+    targetRevision: HEAD
+    path: infrastructure/traefik
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  # Ignore K3s-managed Traefik resources to prevent controller conflicts.
+  # ArgoCD only manages the HelmChartConfig; K3s owns everything else.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: traefik
+      namespace: kube-system
+      jsonPointers:
+        - /spec/template/spec
+        - /spec/template/metadata/annotations
+    - group: helm.cattle.io
+      kind: HelmChart
+      name: traefik
+      namespace: kube-system
+      jsonPointers:
+        - /spec
+    - group: ""
+      kind: Service
+      name: traefik
+      namespace: kube-system
+      jsonPointers:
+        - /spec/clusterIP
+        - /spec/clusterIPs

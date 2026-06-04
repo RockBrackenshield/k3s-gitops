@@ -1,0 +1,29 @@
+# k3s-gitops/infrastructure/cert-manager/wildcard-cert.yaml
+# ---
+# Wildcard certificate for *.hermnet.org and hermnet.org.
+# The secretTemplate annotations instruct Reflector to automatically mirror
+# the resulting TLS secret to all listed namespaces.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-hermnet-org
+  namespace: cert-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  secretName: wildcard-hermnet-org-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  duration: 2160h
+  renewBefore: 360h
+  dnsNames:
+    - "*.hermnet.org"
+    - "hermnet.org"
+  secretTemplate:
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin"

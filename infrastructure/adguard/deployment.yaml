@@ -1,0 +1,79 @@
+# k3s-gitops/infrastructure/adguard/deployment.yaml
+# ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adguard-home
+  namespace: adguard
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    app: adguard
+    app.kubernetes.io/name: adguard-home
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: adguard
+  template:
+    metadata:
+      labels:
+        app: adguard
+        app.kubernetes.io/name: adguard-home
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: adguard-home
+          image: adguard/adguardhome:latest
+          imagePullPolicy: Always
+          ports:
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: setup
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Chicago
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: adguard-config
+              mountPath: /opt/adguardhome/conf
+              subPath: conf
+            - name: adguard-config
+              mountPath: /opt/adguardhome/work
+              subPath: work
+      volumes:
+        - name: adguard-config
+          persistentVolumeClaim:
+            claimName: adguard-config

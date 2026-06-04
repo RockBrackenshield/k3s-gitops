@@ -1,0 +1,29 @@
+# k3s-gitops/bootstrap/apps/argocd-ingress.yaml
+# ---
+# Manages the ArgoCD HTTPS IngressRoute via GitOps.
+# prune: false prevents ArgoCD from ever deleting its own ingress and locking
+# itself out. selfHeal: true re-applies the route if it is manually deleted.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-ingress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RockBrackenshield/k3s-gitops
+    targetRevision: HEAD
+    path: infrastructure/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

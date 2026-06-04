@@ -1,0 +1,13 @@
+# k3s-gitops/infrastructure/adguard/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service-dns.yaml
+  - service-http.yaml
+  - ingressroute.yaml
+  - ingressroute-tcp.yaml
+  - ingressroute-udp.yaml
+  - replication-source.yaml

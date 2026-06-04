@@ -1,0 +1,54 @@
+# k3s-gitops/infrastructure/volsync/sealed-shared-b2-repo.yaml
+#
+# -------------------------------------------------------------------
+# GENERATION COMMAND:
+#
+#   kubectl create secret generic shared-b2-repo \
+#     --namespace volsync-system \
+#     --from-literal=RESTIC_REPOSITORY=s3:https://s3.us-east-005.backblazeb2.com/hermnet-restic-private \
+#     --from-literal=RESTIC_PASSWORD=YOUR_RESTIC_PASSWORD \
+#     --from-literal=AWS_ACCESS_KEY_ID=YOUR_B2_KEY_ID \
+#     --from-literal=AWS_SECRET_ACCESS_KEY=YOUR_B2_APPLICATION_KEY \
+#     --dry-run=client -o yaml \
+#   | kubeseal \
+#     --cert /tmp/sealed-secrets-pub.pem --format yaml \
+#     --controller-name sealed-secrets-controller \
+#     --controller-namespace sealed-secrets \
+#   > infrastructure/volsync/sealed-shared-b2-repo.yaml
+#
+# RESTIC_REPOSITORY uses the bucket root — no sub-path suffix.
+# VolSync tags every snapshot with the source PVC name and namespace,
+# so AdGuard, Jellyfin, and any future app coexist in one repository
+# without conflict. Reflector mirrors this secret to every namespace
+# listed in reflection-auto-namespaces.
+#
+# When adding a new application that needs VolSync backup:
+#   1. Add its namespace to reflection-allowed-namespaces and
+#      reflection-auto-namespaces in template.metadata.annotations below.
+#   2. Re-seal the secret (run the generation command above with the
+#      same credential values).
+#   3. Commit and push — ArgoCD and Reflector handle the rest.
+# -------------------------------------------------------------------
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: shared-b2-repo
+  namespace: volsync-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  encryptedData:
+    AWS_ACCESS_KEY_ID: AgCTbn2oa5RDTd6eNZN2NHPThnh1McIGDp/NrqUee40AZZRLg58EmOdEoFfwiQZPUNubSm7OrhtuBzxGqpfP0oqYPxfyKMSlyM9XBamu7ojePF9bTMlKPxZDihbtgiIVDTNKCW28Pbyc7UABLhqssHRVVaZ5Xd0hIlWWmpi+kDsaLX378pn7YUq2scygrIYVfm93h/CmXvI7k2e+BOrsNYvQrOXFpMG9piO0RMXN96oS2RJ8TH5oc8Uv8leijQCWTCvU7hCvKu/dFhy60zr223jvo6G4Lx0MpqfhwdYPWN5/cNBHfxTVC/WmPy9Wlu4QeBGSJ9WuDSBFN0MEZAkAW08fDtWgg/o2r75sPVvH0um26mgQrvSOBL1dSnv4zFPXUqYrUmNMgbs4N++D3rLqUL7sQxwG9d5EcUvGdfRobdP1Bc2QUoX2aWeg5uxPO6b92gfyICNhUWS4e3gd1EqfBS+DFjwXwTwo+8VbbLQOHF1bfNNLyGCBQ0gZ+a/AVXft7V3Y8ef4bk498lf+4aIZY6jEMk05Na6wEzS9bIoo+2OSHwLJ/5aJN+NpGGpfh0SYJ1c9ZTtjdssy9UVzvxgtxOPEV9J4ACplERUtByQVhPTluuHguSkOHhQ40oTjVwJbnVLWT+cLu6ynw7siRLKtEuyR4Xw2S4Ll+nsqikYdleJeZTfAY/e6VrmFBXgXKu6GNBun7RKe+QsmZUxIQ2p4/cdgbNv3w7J1VNEy
+    AWS_SECRET_ACCESS_KEY: AgCRWAHs1kreJ9LpY97vHhueDefbjPjGYeZ3U1fWBMn0s2WilLKupYd10hWp0/z6W1oI2z2UewuGqC+Zv+0/9L179hxWXmeAWyeMpDT2ewx9qmBMUFdLMbss8CLorFWW+Dh/h/A3BRFtYVz7UauvMmIfpkpiTiwyhNkyUpJ0BbchRPKRb0SHZ105eE9iYqj7xz0naKBoFsZO+eTwJhUcCdM94Z8YlU/2HmKdFAhjGWaRmbTkJkUQk7zDonhkZzhClSHCbtsb+Mnz8R4IAa4cH8UIp72N4w2GCldqA0bJF2ojMptbcSWPzgj3URKvQh4+5r7wXUNUUnNUguKnX3OnXTX/8s4IMDYhDSpb1ZT2d+kHpyjO5oCgayi7c+UFDJHk+IDOLbGwNGyz1vWYPYjYwCjZXFVPC4ZXe0warIPvRYS6dVl0rkmBqaHZhL3ton91UbNOH4mrqKbEZb8o+zJB2k9+NyV6/SJ3e1YWKWCqdj3fjaVasufwSd8KOYG4SuCQxtbg0rloguTtALiWYxsmZYGq/4byazKx5bxGv7O975SbME/c1IzocomdmFxpcevpr/JWykLx7V80fH6lWPi5igqu35HWwEUcfBY33Q8sFftHzDntVULUvjnKvCuGAEQOOwtUrqDw9NR6XapuZqN9AUTPOcaKDJDkKMuTJZrqNi3yiPpeLBgNK9w6/Bzv5z5Z8lSwLWJUIKrV6yiNxTX3iO8vc3V2AvXXTbz7P9IxN7HQ
+    RESTIC_PASSWORD: AgCURXz0O0FgXVxAWFpMvqjZeyOYfVpnBsefJpI3BZngFS869TE0lZ5UiEk8K31eZRJPzHZ4pLBpsjx9MyrJH+c+eSihRF3athOyhQg5BPgFJLTwkL1O9QxTuJt6XyspDiM6kFyuFSPUn2Xad9LTtiNvkaIsFhvmDTAJsqLuwn9TQ2KC0yB3+5BAtiKwtEJPgFQz28Csvf9pIjI7NH2M96dXCt2lmQMMZADEbAJ96n3Mp3h+vdtXU6qT/AH674cv0VyAX6X1e/mOlwHwDPgQTrsTzZWKtXQHJoTkL2NpamY5DN0S8UWZi4RkZmOVJX6Isl5gzhoBrf5Bdmp3Kn1wukzYccSlvk86OpZns3gKuL/kkPh9dZPElDw1TuMnbYBeVWL0Y0G3OjMIThpwgdzhFpsOIg6aOh3yjl/scOtKDOoEAx4aeLofnyQ1ms5Yp4q17Uuyf09zqLTfftwxJEpUnT97SkKVYr9BHwtZNKksLsZde34qLuT/1g1jTvGKXiPkCl/YoRsilTYgWkrHcur16s3TZunGlD8lsnCJ2mDwRTgRdlyB5Ljmu+Y7ohUfmZ3xIP855H7k1nMo0SV77iqYRg+no+G9np0XQDKbpqXg8WkUL+qpMQKFX7Np5CEK/n7Vr5XS6w329viY5ZS/rtDNcSu8kfkAk6zRI7mixHI3iwu906kSlYuFuPZF/36RoqqXAaUpJK9DUlWe4JHD+bQaOBkzasKZezmUQpKnc46GXgg=
+    RESTIC_REPOSITORY: AgCcw4dkMdpU8Xlc3d00byi1OaasiBrbHIiLGjWjQMGp+KWu+3MQgcJGk2lMyvq619rqHlWIS8J8d+HENn1L4PEJGZTIQ7+E8zuWrjVwPKrAJGVQWi2EKw5duiQaCR+0KTZuZ8fVI99cIYmBD0GEYuIlqpDmOVsJc8HOosjrKA5emn2EIZnfwN9aiwrdB1qau8VPMbmbs0V6kolzwxiOfXji0QpgvlGygHszngEhB6VhOtRxvTYeI2g433VCY923fDY51mTJN2cq1uN6/xSKFwUjVDb3Vk9GfOy2txmus9WdjWEgN84MvWyHKIkSrrLt9Pq50J8fSeVfiHwVqv0E/kcaPuOBCzgazVYxZN4K1nnIbGIUzf9obKRJOYVvho+XI2jfukcmI2kvcrA8OYxRVDNBqb+bR6eFhITZ96vojw9MkLXxS4T48SQNGz9j9H2Qi8FuTxwgEmYn2x7emJLEyHTdb1RFO9BOCuG1TzQ1+F7RM8jiALndNyBHIQvQWOAOyQjvaZbo5TVZM42SAqqHxbC8iOwUo/2AQ45nBEwE9coM3nuWXjZiBEIyXvsTgkdYJctDI9MuQuyluD6EVFw3P37LiwcbLRDVMcTeTy8JGAKDil6T9KstB6WE5R3Q1GY169DSJShOCPV5UKL6QPrLE7SFnIwSprK/fNrAoZVXJcM9n4YXOM9vjhxwFqq3j8jEBqMxnZ9DzKKK8AyOrvNIiS0hK1zQLi7vRvgqAC+ucysEdE69yi0U1QjhMYk5IJvRXIMhNUb3NzsVIA9FBRSg9ksk
+  template:
+    metadata:
+      name: shared-b2-repo
+      namespace: volsync-system
+      annotations:
+        reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+        reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,jellyfin"
+        reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
+        reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,jellyfin"
+    type: Opaque

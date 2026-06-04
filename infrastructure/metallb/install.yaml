@@ -1,0 +1,24 @@
+# k3s-gitops/infrastructure/metallb/install.yaml
+# ---
+# K3s HelmChart CRD — instructs the built-in K3s Helm controller to install
+# MetalLB via Helm. The controller reads this resource from kube-system and
+# reconciles the MetalLB release into metallb-system.
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: metallb
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  chart: metallb
+  repo: https://metallb.github.io/metallb
+  version: 0.14.5
+  targetNamespace: metallb-system
+  createNamespace: true
+  valuesContent: |-
+    speaker:
+      frr:
+        enabled: false
+    controller:
+      tolerations: []

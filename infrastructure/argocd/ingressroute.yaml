@@ -1,0 +1,29 @@
+# k3s-gitops/infrastructure/argocd/ingressroute.yaml
+# ---
+# ArgoCD web UI exposed at https://argocd.hermnet.org.
+# ArgoCD runs in insecure mode (server.insecure: true); Traefik terminates TLS
+# using the wildcard cert reflected into this namespace by Reflector.
+#
+# This IngressRoute is safe to apply before the wildcard-hermnet-org-tls
+# secret exists: Traefik will accept the route and begin serving TLS the
+# instant Reflector copies the secret into the argocd namespace. No sync
+# ordering dependency on the cert is required.
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`argocd.hermnet.org`)
+      priority: 10
+      services:
+        - name: argocd-server
+          port: 80
+  tls:
+    secretName: wildcard-hermnet-org-tls

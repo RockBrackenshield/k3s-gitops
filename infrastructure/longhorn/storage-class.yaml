@@ -1,0 +1,23 @@
+# k3s-gitops/infrastructure/longhorn/storage-class.yaml
+# ---
+# Default StorageClass backed by the USB drive on k3s-master.
+# diskSelector and nodeSelector ensure all volumes land on the USB disk.
+# reclaimPolicy Retain prevents accidental data loss.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-usb
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+parameters:
+  numberOfReplicas: "2"
+  staleReplicaTimeout: "2880"
+  dataLocality: "disabled"
+  diskSelector: "usb"
+  nodeSelector: "usb-node"
+  fsType: "ext4"

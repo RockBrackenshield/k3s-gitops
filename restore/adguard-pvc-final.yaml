@@ -1,0 +1,27 @@
+# k3s-gitops/restore/adguard-pvc-final.yaml
+# ---
+# Creates the empty target PVC that VolSync will restore into.
+#
+# IMPORTANT: Apply this file BEFORE applying restore/adguard-restore.yaml.
+# The ReplicationDestination requires the destinationPVC to exist first.
+#
+# This PVC uses the same spec as the production adguard-config PVC so that
+# after restore completes the data is immediately usable by the AdGuard
+# deployment without any further steps.
+#
+# See restore/adguard-restore.yaml for the full ordered restore procedure.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: adguard-config
+  namespace: adguard
+  labels:
+    app: adguard
+    app.kubernetes.io/name: adguard-home
+spec:
+  storageClassName: longhorn-usb
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

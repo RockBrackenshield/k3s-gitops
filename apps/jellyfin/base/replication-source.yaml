@@ -1,0 +1,33 @@
+# k3s-gitops/apps/jellyfin/base/replication-source.yaml
+# ---
+# VolSync ReplicationSource — backs up the jellyfin-config PVC to Backblaze B2
+# daily at 02:00 using restic with Longhorn CSI snapshots.
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: jellyfin-config-backup
+  namespace: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  sourcePVC: jellyfin-config
+  trigger:
+    schedule: "0 2 * * *"
+  restic:
+    pruneIntervalDays: 7
+    repository: shared-b2-repo
+    retain:
+      hourly: 6
+      daily: 7
+      weekly: 4
+      monthly: 3
+    copyMethod: Snapshot
+    volumeSnapshotClassName: longhorn
+    storageClassName: longhorn-usb
+    accessModes:
+      - ReadWriteOnce
+    cacheStorageClassName: longhorn-usb
+    cacheAccessModes:
+      - ReadWriteOnce
+    cacheCapacity: 2Gi

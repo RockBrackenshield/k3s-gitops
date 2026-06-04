@@ -1,0 +1,19 @@
+# k3s-gitops/apps/jellyfin/base/pvc.yaml
+# ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config
+  namespace: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app: jellyfin
+    app.kubernetes.io/name: jellyfin
+spec:
+  storageClassName: longhorn-usb
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi

@@ -1,0 +1,12 @@
+# k3s-gitops/infrastructure/cert-manager/kustomization.yaml
+# The cert-manager Helm chart is sourced directly in bootstrap/apps/cert-manager.yaml.
+# This kustomization provides the supplementary CRD resources (ClusterIssuers,
+# Certificate, SealedSecret) that ArgoCD applies alongside the Helm release.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - sealed-cloudflare-secret.yaml
+  - clusterissuer-staging.yaml
+  - clusterissuer-prod.yaml
+  - wildcard-cert.yaml

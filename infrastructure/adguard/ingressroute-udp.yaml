@@ -1,0 +1,19 @@
+# k3s-gitops/infrastructure/adguard/ingressroute-udp.yaml
+# ---
+# Routes DNS over UDP through Traefik's dns-udp entrypoint (port 53/UDP on
+# 10.10.10.20) to the AdGuard DNS service. UDP IngressRoutes have no
+# match field — all UDP traffic on the entrypoint is forwarded.
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteUDP
+metadata:
+  name: adguard-dns-udp
+  namespace: adguard
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  entryPoints:
+    - dns-udp
+  routes:
+    - services:
+        - name: adguard-dns
+          port: 53

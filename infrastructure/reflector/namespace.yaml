@@ -1,0 +1,10 @@
+# k3s-gitops/infrastructure/reflector/namespace.yaml
+# ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reflector
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  labels:
+    app.kubernetes.io/name: reflector

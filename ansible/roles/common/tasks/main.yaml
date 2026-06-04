@@ -1,0 +1,210 @@
+# k3s-gitops/ansible/roles/common/tasks/main.yaml
+# ---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required system packages
+  ansible.builtin.apt:
+    name:
+      - open-iscsi
+      - nfs-common
+      - curl
+      - wget
+      - jq
+      - git
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+    state: present
+
+- name: Enable and start open-iscsi daemon
+  ansible.builtin.systemd:
+    name: iscsid
+    enabled: true
+    state: started
+
+# --- DNS: configure systemd-resolved to free port 53 ---
+# Do NOT disable systemd-resolved. Disabling it removes the symlink target
+# for /etc/resolv.conf and breaks host DNS. Instead, set DNSStubListener=no
+# so the service runs and provides DNS to the host via upstream resolvers,
+# but does not bind to 127.0.0.53:53, leaving port 53 free for AdGuard.
+
+- name: Create systemd-resolved drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure systemd-resolved to not bind port 53
+  ansible.builtin.copy:
+    dest: /etc/systemd/resolved.conf.d/no-stub.conf
+    content: |
+      [Resolve]
+      DNSStubListener=no
+      DNS=1.1.1.1 8.8.8.8
+      FallbackDNS=8.8.4.4 1.0.0.1
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart systemd-resolved
+
+- name: Ensure systemd-resolved is enabled and running
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    enabled: true
+    state: started
+
+- name: Point /etc/resolv.conf at systemd-resolved non-stub resolver file
+  # /run/systemd/resolve/resolv.conf contains the real upstream nameservers
+  # (1.1.1.1, 8.8.8.8) rather than the stub address 127.0.0.53.
+  # Using force:true replaces any existing file or broken symlink atomically.
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    src: /run/systemd/resolve/resolv.conf
+    state: link
+    force: true
+    owner: root
+    group: root
+
+- name: Verify DNS resolution is working on this node
+  ansible.builtin.command:
+    cmd: nslookup google.com
+  register: dns_check
+  changed_when: false
+  failed_when: dns_check.rc != 0
+
+- name: Persist iscsi_tcp kernel module
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/longhorn.conf
+    content: |
+      iscsi_tcp
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Load iscsi_tcp kernel module immediately
+  community.general.modprobe:
+    name: iscsi_tcp
+    state: present
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Ensure hostname is in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: "^127\\.0\\.1\\.1"
+    line: "127.0.1.1 {{ inventory_hostname }}"
+    state: present
+
+- name: Disable swap immediately
+  ansible.builtin.command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Disable swap in /etc/fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+
+- name: Set sysctl params for Kubernetes networking
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+  loop:
+    - { key: "net.bridge.bridge-nf-call-iptables",  value: "1" }
+    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { key: "net.ipv4.ip_forward",                  value: "1" }
+# Below is the second set of instructions generated. Review before committal.
+#------------------
+#- name: Update apt cache
+#  ansible.builtin.apt:
+#    update_cache: true
+#    cache_valid_time: 3600
+
+#- name: Install required system packages
+#  ansible.builtin.apt:
+#    name:
+#      - open-iscsi
+#      - nfs-common
+#      - curl
+#      - wget
+#      - jq
+#      - git
+#      - apt-transport-https
+#      - ca-certificates
+#      - gnupg
+#      - lsb-release
+#    state: present
+
+#- name: Enable and start open-iscsi daemon
+#  ansible.builtin.systemd:
+#    name: iscsid
+#    enabled: true
+#    state: started
+#
+#- name: Disable systemd-resolved service
+#  ansible.builtin.systemd:
+#    name: systemd-resolved
+#    enabled: false
+#    state: stopped
+#  notify: "disable systemd-resolved and set static dns"
+
+#- name: Persist iscsi_tcp kernel module across reboots
+#  ansible.builtin.copy:
+#    dest: /etc/modules-load.d/longhorn.conf
+#    content: |
+#      iscsi_tcp
+#    owner: root
+#    group: root
+#    mode: "0644"
+
+#- name: Load iscsi_tcp kernel module immediately
+#  ansible.builtin.command:
+#    cmd: modprobe iscsi_tcp
+#  register: modprobe_result
+#  changed_when: modprobe_result.rc == 0
+#  failed_when: modprobe_result.rc != 0
+
+#- name: Set hostname
+#  ansible.builtin.hostname:
+#    name: "{{ inventory_hostname }}"
+
+#- name: Ensure hostname is present in /etc/hosts
+#  ansible.builtin.lineinfile:
+#    path: /etc/hosts
+#    regexp: "^127\\.0\\.1\\.1"
+#    line: "127.0.1.1 {{ inventory_hostname }}"
+#    state: present
+
+#- name: Disable swap immediately
+#  ansible.builtin.command: swapoff -a
+#  when: ansible_swaptotal_mb > 0
+#  changed_when: ansible_swaptotal_mb > 0
+
+#- name: Disable swap permanently in /etc/fstab
+#  ansible.builtin.replace:
+#    path: /etc/fstab
+#    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+#    replace: '# \1'
+
+#- name: Set sysctl params required for Kubernetes networking
+#  ansible.posix.sysctl:
+#    name: "{{ item.key }}"
+#    value: "{{ item.value }}"
+#    sysctl_set: true
+#    state: present
+#    reload: true
+#  loop:
+#    - { key: "net.bridge.bridge-nf-call-iptables",  value: "1" }
+#    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+#    - { key: "net.ipv4.ip_forward",                  value: "1" }

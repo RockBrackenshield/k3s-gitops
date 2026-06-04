@@ -1,0 +1,18 @@
+# k3s-gitops/apps/jellyfin/overlays/production/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: jellyfin
+resources:
+  - ../../base
+patches:
+  - path: patch-replicas.yaml
+    target:
+      kind: Deployment
+      name: jellyfin
+  - path: patch-resources.yaml
+    target:
+      kind: Deployment
+      name: jellyfin
+images:
+  - name: jellyfin/jellyfin
+    newTag: "10.8.0"

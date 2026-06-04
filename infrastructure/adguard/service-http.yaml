@@ -1,0 +1,23 @@
+# k3s-gitops/infrastructure/adguard/service-http.yaml
+# ---
+# ClusterIP service for the AdGuard web UI. Used by the IngressRoute to route
+# HTTPS traffic from Traefik to the AdGuard admin interface.
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguard-http
+  namespace: adguard
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    app: adguard
+    app.kubernetes.io/name: adguard-home
+spec:
+  type: ClusterIP
+  selector:
+    app: adguard
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP

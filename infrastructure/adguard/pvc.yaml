@@ -1,0 +1,19 @@
+# k3s-gitops/infrastructure/adguard/pvc.yaml
+# ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: adguard-config
+  namespace: adguard
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app: adguard
+    app.kubernetes.io/name: adguard-home
+spec:
+  storageClassName: longhorn-usb
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

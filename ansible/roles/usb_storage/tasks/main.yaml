@@ -1,0 +1,46 @@
+# k3s-gitops/ansible/roles/usb_storage/tasks/main.yaml
+# ---
+- name: Create Longhorn USB mount point
+  ansible.builtin.file:
+    path: "{{ longhorn_usb_mount }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Add USB drive to /etc/fstab with nofail option
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    # Match by mount path rather than by UUID so the line is updated
+    # correctly if the UUID ever changes (e.g. drive replaced).
+    regexp: '^UUID=\S+\s+{{ longhorn_usb_mount | regex_escape }}\s'
+    line: "UUID={{ longhorn_usb_uuid }} {{ longhorn_usb_mount }} ext4 defaults,nofail 0 2"
+    state: present
+
+- name: Reload systemd daemon to pick up fstab changes
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Mount all fstab entries (including USB)
+  ansible.builtin.command: mount -a
+  register: mount_result
+  changed_when: false
+  # nofail in fstab suppresses mount errors on boot, but mount -a itself
+  # still returns 0 when nofail is set and the device is absent.
+  # A non-zero exit here indicates a different, unexpected error.
+  failed_when: mount_result.rc != 0
+
+- name: Verify USB drive is actually mounted at expected path
+  ansible.builtin.command:
+    cmd: mountpoint -q {{ longhorn_usb_mount }}
+  register: usb_mountpoint_check
+  changed_when: false
+  failed_when: false
+
+- name: Assert USB drive is mounted
+  ansible.builtin.assert:
+    that: usb_mountpoint_check.rc == 0
+    fail_msg: >
+      {{ longhorn_usb_mount }} is not mounted.
+      Verify that UUID {{ longhorn_usb_uuid }} is correct (run: sudo blkid)
+      and that the USB drive is physically connected to k3s-master.

@@ -1,0 +1,58 @@
+# k3s-gitops/infrastructure/traefik/helmchartconfig.yaml
+# ---
+# Configures the K3s built-in Traefik Helm release via the HelmChartConfig
+# CRD. K3s merges these values into the default Traefik chart values.
+# ArgoCD manages ONLY this HelmChartConfig. K3s owns the Traefik Deployment,
+# Service, and HelmChart resources — ignoreDifferences in the ArgoCD
+# Application prevents drift detection on those resources.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  valuesContent:
+    service:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: "10.10.10.20"
+        metallb.universe.tf/address-pool: "infrastructure-pool"
+      spec:
+        externalTrafficPolicy: Local
+    ports:
+      web:
+        port: 8000
+        expose:
+          default: true
+        exposedPort: 80
+        protocol: TCP
+        # Permanently redirect all plain-HTTP traffic to HTTPS.
+        # Traefik emits a 301 for every request on the web entrypoint.
+        redirectTo: websecure
+      websecure:
+        port: 8443
+        expose:
+          default: true
+        exposedPort: 443
+        protocol: TCP
+      dns-tcp:
+        port: 9053
+        expose:
+          default: true
+        exposedPort: 53
+        protocol: TCP
+      dns-udp:
+        port: 9054
+        expose:
+          default: true
+        exposedPort: 53
+        protocol: UDP
+    ingressRoute:
+      dashboard:
+        enabled: false
+    logs:
+      general:
+        level: INFO
+      access:
+        enabled: true

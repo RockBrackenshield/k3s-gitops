@@ -1,0 +1,10 @@
+# k3s-gitops/apps/jellyfin/base/namespace.yaml
+# ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  labels:
+    app.kubernetes.io/name: jellyfin

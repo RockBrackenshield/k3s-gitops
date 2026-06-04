@@ -1,0 +1,8 @@
+# k3s-gitops/infrastructure/volsync/kustomization.yaml
+# VolSync is installed via Helm chart sourced in bootstrap/apps/volsync.yaml.
+# This kustomization supplies only the namespace alongside the Helm release.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - sealed-shared-b2-repo.yaml

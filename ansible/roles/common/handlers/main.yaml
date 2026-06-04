@@ -1,0 +1,9 @@
+# k3s-gitops/ansible/roles/common/handlers/main.yaml
+# ---
+# Handlers cannot use block:. Multiple handlers with the same listen: value
+# execute in definition order when the notification fires.
+- name: restart systemd-resolved
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: restarted
+    daemon_reload: true

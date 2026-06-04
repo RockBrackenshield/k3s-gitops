@@ -1,0 +1,31 @@
+# k3s-gitops/bootstrap/argocd-ingress.yaml
+# ---
+# SUPERSEDED — ArgoCD now manages its own IngressRoute via:
+#   bootstrap/apps/argocd-ingress.yaml  →  infrastructure/argocd/ingressroute.yaml
+#
+# This file is kept as a manual emergency fallback only. Apply it with kubectl
+# if the ArgoCD Application is unhealthy and you need direct UI access:
+#
+#   kubectl apply -f bootstrap/argocd-ingress.yaml
+#
+# Do not apply this file during normal bootstrap — the GitOps Application
+# handles it automatically.
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`argocd.hermnet.org`)
+      priority: 10
+      services:
+        - name: argocd-server
+          port: 80
+  tls:
+    secretName: wildcard-hermnet-org-tls
