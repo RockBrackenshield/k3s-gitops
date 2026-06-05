@@ -3,7 +3,7 @@
 # Exposes Jellyfin at https://jellyfin.hermnet.org.
 # Requires wildcard-hermnet-org-tls to be reflected into the jellyfin namespace
 # by Reflector (configured via wildcard-cert.yaml secretTemplate).
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: jellyfin

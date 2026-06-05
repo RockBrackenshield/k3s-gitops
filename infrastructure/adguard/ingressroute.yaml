@@ -2,7 +2,7 @@
 # ---
 # Exposes the AdGuard Home web UI at https://adguard.hermnet.org.
 # Requires wildcard-hermnet-org-tls to be reflected into the adguard namespace.
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: adguard-ui

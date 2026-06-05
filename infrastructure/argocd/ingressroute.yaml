@@ -8,7 +8,7 @@
 # secret exists: Traefik will accept the route and begin serving TLS the
 # instant Reflector copies the secret into the argocd namespace. No sync
 # ordering dependency on the cert is required.
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: argocd-server

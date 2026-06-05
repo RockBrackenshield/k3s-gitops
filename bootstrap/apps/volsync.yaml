@@ -14,7 +14,7 @@ spec:
   sources:
     - chart: volsync
       repoURL: https://backube.github.io/helm-charts/
-      targetRevision: 0.9.0
+      targetRevision: 0.15.0
       helm:
         releaseName: volsync
     - repoURL: https://github.com/RockBrackenshield/k3s-gitops
