@@ -30,10 +30,10 @@ spec:
   valuesContent: |-
     defaultSettings:
       defaultDataPath: /mnt/longhorn-usb
-      createDefaultDiskLabeledNodes: true
+      createDefaultDiskLabeledNodes: false
       replicaSoftAntiAffinity: true
       storageMinimalAvailablePercentage: 10
-      defaultReplicaCount: 2
+      defaultReplicaCount: 1
     persistence:
       defaultClass: false
       defaultClassReplicaCount: 2
