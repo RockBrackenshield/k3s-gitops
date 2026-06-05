@@ -17,7 +17,6 @@ metadata:
     app.kubernetes.io/name: adguard-home
 spec:
   type: LoadBalancer
-  loadBalancerIP: "10.10.10.10"
   externalTrafficPolicy: Local
   selector:
     app: adguard
