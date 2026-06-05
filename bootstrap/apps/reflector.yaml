@@ -14,7 +14,7 @@ spec:
   sources:
     - chart: reflector
       repoURL: https://emberstack.github.io/helm-charts
-      targetRevision: 7.1.0
+      targetRevision: 10.0.47
       helm:
         releaseName: reflector
     - repoURL: https://github.com/RockBrackenshield/k3s-gitops
