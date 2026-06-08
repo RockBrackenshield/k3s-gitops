@@ -7,3 +7,4 @@ resources:
   - storage-class.yaml
   - node-disk-config.yaml
   - ingressroute.yaml
+  - volume-snapshot-class.yaml

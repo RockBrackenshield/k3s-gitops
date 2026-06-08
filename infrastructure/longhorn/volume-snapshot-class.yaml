@@ -1,0 +1,17 @@
+# infrastructure/longhorn/volume-snapshot-class.yaml
+# ---
+# VolumeSnapshotClass backed by Longhorn's CSI driver.
+# Required by VolSync ReplicationSources that use copyMethod: Snapshot.
+# The external-snapshotter CRDs must be installed separately before this
+# resource can be applied (see bootstrap/apps or a dedicated CRD kustomization).
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: longhorn
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    # Make this the default VolumeSnapshotClass
+    snapshot.storage.kubernetes.io/is-default-class: "true"
+driver: driver.longhorn.io
+deletionPolicy: Delete
