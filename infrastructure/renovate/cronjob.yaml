@@ -44,7 +44,7 @@ spec:
             runAsGroup: 1000
           containers:
             - name: renovate
-              image: renovate/renovate:38.0.0
+              image: renovate/renovate:43.214
               imagePullPolicy: IfNotPresent
               env:
                 - name: RENOVATE_TOKEN
