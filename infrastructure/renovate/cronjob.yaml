@@ -1,0 +1,78 @@
+# k3s-gitops/infrastructure/renovate/cronjob.yaml
+---
+# Renovate runs as a CronJob rather than a long-lived Deployment.
+# This matches the GitOps model: declarative, stateless, scheduled.
+# The CronJob triggers at 02:00 daily (offset from VolSync at 02:00
+# and etcd-backup at 02:30 to avoid competing for network I/O).
+#
+# Renovate image: check https://hub.docker.com/r/renovate/renovate/tags
+# for the latest release and update the tag here. After the first
+# successful run Renovate will open a PR to pin and maintain this tag
+# automatically via the kubernetes manager.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: renovate
+  namespace: renovate
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    app.kubernetes.io/name: renovate
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # Allow up to 30 minutes per run before the Job is killed.
+      # A single small repo should complete well within 5-10 minutes.
+      activeDeadlineSeconds: 1800
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: renovate
+        spec:
+          restartPolicy: OnFailure
+          # Renovate does not interact with the Kubernetes API.
+          # Disable the default service account token mount.
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          containers:
+            - name: renovate
+              image: renovate/renovate:38.0.0
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: RENOVATE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: renovate-github-token
+                      key: token
+                - name: RENOVATE_BASE_DIR
+                  value: /tmp/renovate
+                - name: LOG_LEVEL
+                  value: info
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+              volumeMounts:
+                - name: config
+                  mountPath: /usr/src/app/config.js
+                  subPath: config.js
+                  readOnly: true
+                - name: work
+                  mountPath: /tmp/renovate
+          volumes:
+            - name: config
+              configMap:
+                name: renovate-config
+            - name: work
+              emptyDir: {}

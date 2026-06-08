@@ -1,0 +1,135 @@
+# k3s-gitops/infrastructure/renovate/configmap.yaml
+# ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: renovate-config
+  namespace: renovate
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+data:
+  config.js: |
+    module.exports = {
+      // ── Platform ───────────────────────────────────────────────────────────
+      // GitHub, authenticated via the renovate-github-token Secret.
+      //
+      // CODEBERG MIGRATION: switch to:
+      //   platform: 'gitea',
+      //   endpoint: 'https://codeberg.org',
+      // Codeberg runs Forgejo which is fully compatible with Renovate's
+      // Gitea platform driver. The token in the SealedSecret must also
+      // be replaced with a Codeberg application token (see sealed secret
+      // file for generation instructions).
+      platform: 'github',
+      token: process.env.RENOVATE_TOKEN,
+
+      // ── Repository ─────────────────────────────────────────────────────────
+      repositories: ['RockBrackenshield/k3s-gitops'],
+
+      // ── Identity ───────────────────────────────────────────────────────────
+      gitAuthor: 'Renovate[bot] <renovate@hermnet.org>',
+
+      // ── Onboarding ─────────────────────────────────────────────────────────
+      // Config is provided via this ConfigMap — suppress the onboarding PR.
+      onboarding: false,
+      requireConfig: 'optional',
+
+      // ── Schedule ───────────────────────────────────────────────────────────
+      // The CronJob controls timing (02:00 daily). Renovate's internal
+      // schedule is left open so it never suppresses PRs when it runs.
+      schedule: ['at any time'],
+
+      // ── Merge policy ───────────────────────────────────────────────────────
+      // Every PR requires manual review and merge. Nothing auto-merges.
+      automerge: false,
+
+      // ── Managers ───────────────────────────────────────────────────────────
+      // argocd         — spec.sources[].targetRevision in Application manifests
+      //                  (sealed-secrets, cert-manager, reflector, volsync)
+      // dockerfile     — Base images in any Dockerfiles added in future
+      // github-actions — Action versions in .github/workflows (future-proofing)
+      // kubernetes     — Container image tags in Deployment and CronJob resources
+      //                  (adguard, jellyfin, etcd-backup, renovate itself)
+      // kustomize      — Image overrides in kustomization.yaml overlays
+      //                  (e.g. apps/jellyfin/overlays/production)
+      enabledManagers: [
+        'argocd',
+        'dockerfile',
+        'github-actions',
+        'kubernetes',
+        'kustomize',
+      ],
+
+      // ── Custom managers ────────────────────────────────────────────────────
+      customManagers: [
+        // K3s HelmChart CRD (helm.cattle.io/v1)
+        // These resources are not standard Helm releases and are not picked
+        // up by any built-in manager. The regex matches the field order
+        // as written in the generated files: chart → repo → version.
+        //
+        // Covers:
+        //   infrastructure/metallb/install.yaml       (MetalLB 0.14.5)
+        //   infrastructure/longhorn/helmrelease.yaml  (Longhorn 1.6.0)
+        {
+          customType: 'regex',
+          fileMatch: [
+            '^infrastructure/metallb/install\\.yaml$',
+            '^infrastructure/longhorn/helmrelease\\.yaml$',
+          ],
+          matchStrings: [
+            'chart:\\s+(?<depName>\\S+)\\n\\s+repo:\\s+(?<registryUrl>\\S+)\\n\\s+version:\\s+(?<currentValue>\\S+)',
+          ],
+          datasourceTemplate: 'helm',
+        },
+
+        // K3s server version in Ansible group_vars
+        // Matches: k3s_version: v1.29.0+k3s1
+        // Datasource: GitHub releases for k3s-io/k3s
+        {
+          customType: 'regex',
+          fileMatch: ['^ansible/inventory/group_vars/all\\.yaml$'],
+          matchStrings: [
+            'k3s_version:\\s+(?<currentValue>v[\\d.]+\\+k3s\\d+)',
+          ],
+          datasourceTemplate: 'github-releases',
+          depNameTemplate: 'k3s-io/k3s',
+        },
+
+        // Renovate's customManager for Volume Snapshotter CRDs
+        {
+          customType: "regex",
+          fileMatch: ["bootstrap/crds/kustomization\\.yaml"],
+          matchStrings: [
+            "external-snapshotter/(?<currentValue>v[\\d.]+)/client"
+          ],
+          datasourceTemplate: "github-releases",
+          depNameTemplate: "kubernetes-csi/external-snapshotter",
+        }
+      ],
+
+      // ── Package rules ──────────────────────────────────────────────────────
+      packageRules: [
+        // Minimum 3-day release age before a PR is raised. Protects against
+        // yanked releases and gives upstream ecosystems time to publish
+        // compatible tooling before this cluster consumes a new version.
+        {
+          matchPackagePatterns: ['.*'],
+          minimumReleaseAge: '3 days',
+        },
+
+        // Patch and minor updates are grouped into a single PR per run to
+        // reduce noise. Still requires manual review and merge.
+        {
+          matchUpdateTypes: ['patch', 'minor'],
+          groupName: 'all non-major updates',
+          automerge: false,
+        },
+
+        // Major updates always produce individual PRs for deliberate review.
+        // Breaking changes should never be hidden inside a bulk update.
+        {
+          matchUpdateTypes: ['major'],
+          automerge: false,
+        },
+      ],
+    };
