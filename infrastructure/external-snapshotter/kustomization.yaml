@@ -1,0 +1,28 @@
+# Pulls snapshot-controller manifests from upstream at a pinned version.
+# The only local modification is dropping --v=5 (CI/prow default) to --v=2.
+# To upgrade: change the ?ref= value and update targetRevision in the CRD
+# Application to the same tag in the same commit.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - https://github.com/kubernetes-csi/external-snapshotter//deploy/kubernetes/snapshot-controller?ref=v8.2.0
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: snapshot-controller
+        namespace: kube-system
+      spec:
+        template:
+          spec:
+            containers:
+              - name: snapshot-controller
+                args:
+                  - "--v=2"
+                  - "--leader-election=true"
+    target:
+      kind: Deployment
+      name: snapshot-controller
