@@ -15,3 +15,6 @@ metadata:
     snapshot.storage.kubernetes.io/is-default-class: "true"
 driver: driver.longhorn.io
 deletionPolicy: Delete
+parameters:
+  type: snap   # explicit local snapshot; without this, Longhorn defaults to backup
+               # which requires a Longhorn backup target URL to be configured
