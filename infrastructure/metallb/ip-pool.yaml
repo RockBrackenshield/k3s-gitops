@@ -10,6 +10,6 @@ metadata:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   addresses:
-    - 10.10.10.10-10.10.10.20
+    - 192.168.7.200-192.168.7.220
   autoAssign: false
   avoidBuggyIPs: true

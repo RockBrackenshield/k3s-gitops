@@ -16,10 +16,11 @@ spec:
   valuesContent: |
     service:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: "10.10.10.20"
+        metallb.universe.tf/loadBalancerIPs: "192.168.7.205"
         # Verify this matches your actual IPAddressPool name:
         # kubectl get ipaddresspools -n metallb-system
         metallb.universe.tf/address-pool: "infrastructure-pool"
+        # For Cilium deployment: lbipam.cilium.io/ips: "192.168.7.205"
       spec:
         externalTrafficPolicy: Local
 

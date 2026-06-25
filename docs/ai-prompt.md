@@ -13,10 +13,10 @@ You are generating a complete GitOps repository for a K3s homelab cluster. Gener
 - **Distribution:** Stock K3s: built-in Traefik, CoreDNS, and flannel.
 - **Domain:** domain.org (actual: hermnet.org)
 - **Internal subnet:** 192.168.7.0/24
-- **MetalLB pool:** 10.10.10.10–10.10.10.50
+- **MetalLB pool:** 192.168.7.200-192.168.7.220
 - **Reserved IPs:**
-  - 10.10.10.10 — AdGuard Home (dedicated LoadBalancer, router DNS target)
-  - 10.10.10.20 — Traefik (all HTTP/HTTPS ingress)
+  - 192.168.7.202 — AdGuard Home (dedicated LoadBalancer, router DNS target)
+  - 192.168.7.205 — Traefik (all HTTP/HTTPS ingress)
 - **K3s control plane node:** k3s-master at 192.168.7.15
 - **K3s worker nodes:** k3s-worker-1 at 192.168.7.11, k3s-worker-2 at 192.168.7.13
 - **USB storage node:** k3s-master
@@ -110,7 +110,7 @@ Every Application manifest must include:
 
 ### MetalLB
 - L2 mode
-- One pool: infrastructure-pool (10.10.10.10–10.10.10.20, autoAssign: false)
+- One pool: infrastructure-pool (192.168.7.200-192.168.7.220, autoAssign: false)
 - Single L2Advertisement covering the pool
 
 ### cert-manager
@@ -136,7 +136,7 @@ Every Application manifest must include:
 - Longhorn UI exposed via IngressRoute at longhorn.hermnet.org
 
 ### AdGuard Home
-- Two Services: service-dns.yaml (LoadBalancer, IP 10.10.10.10, ports 53 UDP+TCP) and service-http.yaml (ClusterIP, port 80)
+- Two Services: service-dns.yaml (LoadBalancer, IP 192.168.7.202, ports 53 UDP+TCP) and service-http.yaml (ClusterIP, port 80)
 - Web UI exposed via IngressRoute at adguard.hermnet.org
 - IngressRoute TCP and UDP for DNS traffic via Traefik entrypoints dns-tcp and dns-udp
 - PVC: 1Gi for config storage
