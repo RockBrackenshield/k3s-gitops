@@ -1,0 +1,19 @@
+# infrastructure/authentik/backup/replicationsource.yaml
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: authentik-postgresql-dumps
+  namespace: authentik
+spec:
+  sourcePVC: authentik-postgresql-dumps
+  trigger:
+    schedule: "10 3 * * *" # after the 02:30 pg_dump completes
+  restic:
+    repository: shared-b2-repo
+    copyMethod: Clone
+    storageClassName: longhorn
+    retain:
+      daily: 7
+      weekly: 4
+      monthly: 6
+    cacheCapacity: 8Gi

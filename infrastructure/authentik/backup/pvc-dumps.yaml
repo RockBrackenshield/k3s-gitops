@@ -1,0 +1,12 @@
+# infrastructure/authentik/backup/pvc-dumps.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: authentik-postgresql-dumps
+  namespace: authentik
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 8Gi
