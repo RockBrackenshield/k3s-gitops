@@ -1,0 +1,6 @@
+# k3s-gitops/infrastructure/adguard/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
