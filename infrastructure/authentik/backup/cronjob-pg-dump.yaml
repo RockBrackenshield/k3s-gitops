@@ -1,0 +1,55 @@
+# infrastructure/authentik/backup/cronjob-pg-dump.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-postgresql-dump
+  namespace: authentik
+spec:
+  schedule: "30 2 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-dump
+              image: postgres:16.6-alpine
+              env:
+                - name: PGHOST
+                  value: authentik-postgresql
+                - name: PGUSER
+                  value: authentik
+                - name: PGDATABASE
+                  value: authentik
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: authentik-postgresql-credentials
+                      key: POSTGRES_PASSWORD
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  STAMP=$(date +%Y%m%d-%H%M%S)
+                  DUMPFILE="/dumps/authentik-${STAMP}.dump"
+                  echo "Dumping authentik database to ${DUMPFILE}"
+                  pg_dump -Fc -f "${DUMPFILE}"
+                  echo "Pruning old dumps, keeping the 7 most recent"
+                  cd /dumps
+                  ls -1t authentik-*.dump | tail -n +8 | xargs -r rm -v
+              volumeMounts:
+                - name: dumps
+                  mountPath: /dumps
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  memory: 256Mi
+          volumes:
+            - name: dumps
+              persistentVolumeClaim:
+                claimName: authentik-postgresql-dumps
