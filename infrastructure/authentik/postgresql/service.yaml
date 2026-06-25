@@ -1,0 +1,18 @@
+# infrastructure/authentik/postgresql/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentik-postgresql
+  namespace: authentik
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/part-of: authentik
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/part-of: authentik
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

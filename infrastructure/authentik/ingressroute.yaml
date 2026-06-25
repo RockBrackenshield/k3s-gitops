@@ -1,0 +1,17 @@
+# infrastructure/authentik/ingressroute.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: authentik
+  namespace: authentik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`auth.hermnet.org`)
+      kind: Rule
+      services:
+        - name: authentik-server
+          port: 9000
+  tls:
+    secretName: wildcard-hermnet-org-tls

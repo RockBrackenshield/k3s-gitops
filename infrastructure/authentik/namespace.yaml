@@ -1,0 +1,7 @@
+# infrastructure/authentik/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: authentik
+  labels:
+    app.kubernetes.io/part-of: authentik

@@ -1,0 +1,70 @@
+# infrastructure/authentik/worker/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentik-worker
+  namespace: authentik
+  labels:
+    app.kubernetes.io/name: authentik-worker
+    app.kubernetes.io/part-of: authentik
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: authentik-worker
+      app.kubernetes.io/part-of: authentik
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: authentik-worker
+        app.kubernetes.io/part-of: authentik
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/goauthentik/server:2026.2.4 # keep in sync with server image/tag
+          args: ["worker"]
+          envFrom:
+            - secretRef:
+                name: authentik-config
+          env:
+            - name: AUTHENTIK_POSTGRESQL__HOST
+              value: authentik-postgresql
+            - name: AUTHENTIK_POSTGRESQL__NAME
+              value: authentik
+            - name: AUTHENTIK_POSTGRESQL__USER
+              value: authentik
+            - name: AUTHENTIK_POSTGRESQL__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authentik-postgresql-credentials
+                  key: POSTGRES_PASSWORD
+            - name: AUTHENTIK_REDIS__HOST
+              value: authentik-redis
+            - name: AUTHENTIK_ERROR_REPORTING__ENABLED
+              value: "false"
+            - name: AUTHENTIK_DISABLE_UPDATE_CHECK
+              value: "true"
+            - name: AUTHENTIK_DISABLE_STARTUP_ANALYTICS
+              value: "true"
+          volumeMounts:
+            - name: media
+              mountPath: /media
+            - name: blueprints-custom
+              mountPath: /blueprints/custom
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command: ["ak", "healthcheck"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
+      volumes:
+        - name: media
+          emptyDir: {}
+        - name: blueprints-custom
+          configMap:
+            name: authentik-blueprints-custom

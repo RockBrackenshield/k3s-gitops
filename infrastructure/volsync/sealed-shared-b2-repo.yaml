@@ -25,9 +25,7 @@
 # When adding a new application that needs VolSync backup:
 #   1. Add its namespace to reflection-allowed-namespaces and
 #      reflection-auto-namespaces in template.metadata.annotations below.
-#   2. Re-seal the secret (run the generation command above with the
-#      same credential values).
-#   3. Commit and push — ArgoCD and Reflector handle the rest.
+#   2. Commit and push — ArgoCD and Reflector handle the rest.
 # -------------------------------------------------------------------
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
@@ -48,7 +46,7 @@ spec:
       namespace: volsync-system
       annotations:
         reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-        reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,jellyfin"
+        reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,jellyfin,monitoring"
         reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
-        reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,jellyfin"
+        reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,jellyfin,monitoring"
     type: Opaque

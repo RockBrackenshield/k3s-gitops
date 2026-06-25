@@ -17,9 +17,27 @@ spec:
     service:
       annotations:
         metallb.universe.tf/loadBalancerIPs: "10.10.10.20"
+        # Verify this matches your actual IPAddressPool name:
+        # kubectl get ipaddresspools -n metallb-system
         metallb.universe.tf/address-pool: "infrastructure-pool"
       spec:
         externalTrafficPolicy: Local
+
+    providers:
+      kubernetesCRD:
+        # Required for IngressRoutes in one namespace (e.g. longhorn-system)
+        # to reference Middleware resources in another (e.g. authentik).
+        # Without this, Traefik silently ignores cross-namespace middleware
+        # references — ForwardAuth will appear to do nothing.
+        allowCrossNamespace: true
+
+    # Trust X-Forwarded-* headers only from internal cluster sources.
+    # Defaults are K3s pod CIDR (10.42.0.0/16) and service CIDR (10.43.0.0/16).
+    # Verify against your --cluster-cidr and --service-cidr flags if customised.
+    additionalArguments:
+      - "--entryPoints.web.forwardedHeaders.trustedIPs=127.0.0.1/32,10.42.0.0/16,10.43.0.0/16"
+      - "--entryPoints.websecure.forwardedHeaders.trustedIPs=127.0.0.1/32,10.42.0.0/16,10.43.0.0/16"
+
     ports:
       web:
         port: 8000
@@ -29,6 +47,8 @@ spec:
         protocol: TCP
         # Permanently redirect all plain-HTTP traffic to HTTPS.
         # Traefik emits a 301 for every request on the web entrypoint.
+        # NOTE: v2 syntax. If K3s ever ships Traefik v3, change to:
+        #   redirectTo: {port: websecure}
         redirectTo: websecure
       websecure:
         port: 8443
@@ -50,9 +70,16 @@ spec:
         protocol: UDP
     ingressRoute:
       dashboard:
+        # Suppresses the auto-generated IngressRoute. A custom IngressRoute
+        # pointing at api@internal with Authentik ForwardAuth middleware
+        # will be created as part of the Authentik SSO rollout.
         enabled: false
+
     logs:
       general:
         level: INFO
       access:
         enabled: true
+        # JSON format simplifies Promtail pipeline config for Loki ingestion
+        # (json parser vs. regex). CLF is the default if this is removed.
+        format: json
