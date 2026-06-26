@@ -1,0 +1,11 @@
+# k3s-gitops/infrastructure/external-services/unifi/servers-transport.yaml
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: skip-tls-verify
+  namespace: external-services
+spec:
+  # UDM Pro uses a self-signed cert on its upstream HTTPS port.
+  # Traefik terminates TLS from the client with the wildcard cert,
+  # then connects upstream over HTTPS ignoring verification.
+  insecureSkipVerify: true

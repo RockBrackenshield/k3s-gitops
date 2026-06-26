@@ -1,0 +1,10 @@
+# k3s-gitops/infrastructure/external-services/namespace.yaml
+# ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-services
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app.kubernetes.io/name: external-services
