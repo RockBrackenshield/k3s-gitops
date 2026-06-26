@@ -51,6 +51,7 @@ spec:
         # NOTE: v2 syntax. If K3s ever ships Traefik v3, change to:
         #   redirectTo: {port: websecure}
         redirectTo: websecure
+        permanent: true
       websecure:
         port: 8443
         expose:
