@@ -25,10 +25,10 @@ spec:
       monthly: 3
     copyMethod: Snapshot
     volumeSnapshotClassName: longhorn
-    storageClassName: longhorn-usb
+    storageClassName: longhorn-usb-eph
     accessModes:
       - ReadWriteOnce
-    cacheStorageClassName: longhorn-usb
+    cacheStorageClassName: longhorn-usb-eph
     cacheAccessModes:
       - ReadWriteOnce
     cacheCapacity: 1Gi

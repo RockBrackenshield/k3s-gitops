@@ -1,0 +1,24 @@
+# k3s-gitops/infrastructure/longhorn/storage-class-eph.yaml
+# ---
+# Non-Default StorageClass backed by the USB drive on k3s-master.
+# diskSelector and nodeSelector ensure all volumes land on the USB disk.
+# reclaimPolicy Delete in order to accomodate more ephemeral volumes.
+# This helps ensure cleanliness and removal of things like temporary
+# VolSync volumes created during the routine backup process.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-usb-eph
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  numberOfReplicas: "2"
+  staleReplicaTimeout: "2880"
+  dataLocality: "disabled"
+  diskSelector: "usb"
+  nodeSelector: "usb-node"
+  fsType: "ext4"
