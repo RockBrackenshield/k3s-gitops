@@ -10,8 +10,8 @@ spec:
     schedule: "10 3 * * *" # after the 02:30 pg_dump completes
   restic:
     repository: shared-b2-repo
-    copyMethod: Clone
-    storageClassName: longhorn
+    copyMethod: Snapshot
+    storageClassName: longhorn-usb-eph
     retain:
       daily: 7
       weekly: 4
