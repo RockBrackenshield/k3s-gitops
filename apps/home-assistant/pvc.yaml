@@ -1,0 +1,19 @@
+# apps/home-assistant/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: home-assistant-config
+  namespace: home-assistant
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    # Protects against accidental pruning of the PVC if it's ever removed from
+    # the kustomization. Does NOT protect against Application-level deletion
+    # (resources-finalizer handles that) — VolSync B2 backup is the safety net.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-usb
+  resources:
+    requests:
+      storage: 10Gi

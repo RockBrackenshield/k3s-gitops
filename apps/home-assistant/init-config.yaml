@@ -1,0 +1,35 @@
+# apps/home-assistant/init-config.yaml
+#
+# Seeds /config/configuration.yaml on first boot only.
+# The init container checks for existence before copying, so:
+#   - First deploy: file is written
+#   - Subsequent deploys: existing file is left untouched
+#   - VolSync restore: PVC already has configuration.yaml, init skips
+#
+# The http.trusted_proxies block is NOT optional — without it HA rejects
+# Traefik-forwarded requests and OIDC redirect base URL resolution breaks.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: home-assistant-init-config
+  namespace: home-assistant
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  configuration.yaml: |
+    homeassistant:
+      name: hermnet
+      time_zone: America/Detroit
+
+    # REQUIRED for operation behind Traefik. Without trusted_proxies HA rejects
+    # connections (it sees the Traefik pod IP, not the real client).
+    # 10.42.0.0/16 is K3s's default pod CIDR — verify against your Cilium config.
+    http:
+      use_x_forwarded_for: true
+      trusted_proxies:
+        - 10.42.0.0/16
+        - 127.0.0.1
+
+    # Enables discovery, mobile_app, energy, and most default integrations.
+    # Remove components explicitly if you don't want them loaded.
+    default_config:

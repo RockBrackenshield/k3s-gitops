@@ -1,0 +1,36 @@
+# bootstrap/apps/home-assistant.yaml
+#
+# NOTE: bootstrap/apps/ is a new directory. Your root App of Apps needs to
+# discover it. Options:
+#   a) Add a new Application CR to bootstrap/infrastructure/ that watches
+#      bootstrap/apps/ (cleanest — keeps the two-tier pattern intact)
+#   b) Extend your existing root App of Apps path to cover bootstrap/apps/
+#
+# If you go with option (a), your new Application would look like:
+#   path: bootstrap/apps
+#   directory.recurse: true
+# with its own sync-wave set earlier than the apps it discovers.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: home-assistant
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RockBrackenshield/k3s-gitops
+    targetRevision: HEAD
+    path: apps/home-assistant
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: home-assistant
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

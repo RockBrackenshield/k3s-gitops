@@ -1,0 +1,38 @@
+# apps/home-assistant/volsync-replication-source.yaml
+#
+# Reflector auto-mirrors shared-b2-repo from volsync-system to this namespace
+# when the namespace is created — no manual sealing or re-sealing needed.
+#
+# copyMethod: Snapshot requires the Longhorn VolumeSnapshotClass fix
+# (parameters.type: snap) to be complete. If that fix isn't landed yet,
+# temporarily set copyMethod: Direct to unblock — switch back after the fix
+# is confirmed working end-to-end with the other VolSync workloads.
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: home-assistant-config
+  namespace: home-assistant
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  sourcePVC: home-assistant-config
+  trigger:
+    # Daily at 02:00 — stagger relative to other VolSync jobs if needed.
+    schedule: "0 2 * * *"
+  restic:
+    pruneIntervalDays: 7
+    repository: shared-b2-repo
+    retain:
+      hourly: 6
+      daily: 7
+      weekly: 4
+      monthly: 3
+    copyMethod: Snapshot
+    volumeSnapshotClassName: longhorn
+    storageClassName: longhorn-usb-eph
+    accessModes:
+      - ReadWriteOnce
+    cacheStorageClassName: longhorn-usb-eph
+    cacheAccessModes:
+      - ReadWriteOnce
+    cacheCapacity: 2Gi

@@ -1,0 +1,7 @@
+# apps/home-assistant/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: home-assistant
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
