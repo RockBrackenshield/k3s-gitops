@@ -8,5 +8,5 @@ resources:
   - init-config.yaml
   - deployment.yaml
   - service.yaml
-  - ingressroute.yaml
+  - ingress-route.yaml
   - volsync-replication-source.yaml
