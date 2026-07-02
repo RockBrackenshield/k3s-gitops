@@ -3,5 +3,5 @@ kind: Kustomization
 
 resources:
   - sealed-grafana-admin-secret.yaml
-  - sealed-secret-grafana-oidc.yaml
+  - sealed-grafana-oidc-secret.yaml
   - ingressroute-grafana.yaml
