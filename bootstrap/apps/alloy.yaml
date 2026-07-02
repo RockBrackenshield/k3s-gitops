@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argocd
+  annotations:
+    # Wave 3: Loki (wave 2) must be running before Alloy tries to push logs.
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: alloy
+      # renovate: registryUrl=https://grafana.github.io/helm-charts chart=alloy
+      # VERIFY this version before first deploy: helm search repo grafana/alloy --versions | head -5
+      targetRevision: "1.10.0"
+      helm:
+        releaseName: alloy
+        valueFiles:
+          - $values/infrastructure/monitoring/alloy/values.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,268 @@
+# kube-prometheus-stack Helm values
+# Targets: K3s / aarch64 (3-node Pi cluster)
+# CRDs managed by chart; ArgoCD uses ServerSideApply=true at Application level.
+
+# ---------------------------------------------------------------------------
+# CRDs — installed and managed by the chart itself
+# ---------------------------------------------------------------------------
+crds:
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# Default alerting rules
+# Disable rules for K3s-internal components that are not exposed via
+# standard ports (etcd, controller-manager, scheduler, kube-proxy).
+# ---------------------------------------------------------------------------
+defaultRules:
+  create: true
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+    windows: false
+
+# ---------------------------------------------------------------------------
+# K3s-specific: disable scraping for components not exposed externally
+# ---------------------------------------------------------------------------
+kubeControllerManager:
+  enabled: false
+
+kubeEtcd:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeProxy:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Kubelet + cAdvisor — exposed by K3s on port 10250; works out of the box
+# ---------------------------------------------------------------------------
+kubelet:
+  enabled: true
+  serviceMonitor:
+    cAdvisor: true
+
+# ---------------------------------------------------------------------------
+# CoreDNS — K3s uses CoreDNS as the cluster DNS provider
+# ---------------------------------------------------------------------------
+coreDns:
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# Alertmanager
+# Stub configuration — no notification receivers.
+# Receivers will be added in a follow-up pass.
+# ---------------------------------------------------------------------------
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 5Gi
+  config:
+    global:
+      resolve_timeout: 5m
+    inhibit_rules: []
+    route:
+      group_by:
+        - namespace
+        - alertname
+        - severity
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 1h
+      receiver: "null"
+      routes: []
+    receivers:
+      - name: "null"
+    templates: []
+
+# ---------------------------------------------------------------------------
+# Grafana
+# - Authentik native OIDC (no ForwardAuth — Grafana has first-class OIDC)
+# - Local admin kept as break-glass (disable_login_form: false)
+# - No PVC; dashboards and datasources provisioned from ConfigMaps via sidecar
+# - Loki datasource provisioned inline via additionalDataSources
+# ---------------------------------------------------------------------------
+grafana:
+  enabled: true
+
+  # Break-glass admin credentials from SealedSecret
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+
+  # OIDC client credentials injected as env vars from SealedSecret.
+  # Grafana expands ${VAR} references in grafana.ini from the environment.
+  envFromSecret: grafana-oidc
+
+  grafana.ini:
+    server:
+      domain: grafana.hermnet.org
+      root_url: "https://grafana.hermnet.org"
+    auth:
+      # Keep local login enabled — break-glass utility via admin secret
+      disable_login_form: false
+      disable_signout_menu: false
+      # Redirect to Authentik's end-session endpoint on Grafana sign-out.
+      # Adjust the application slug ("grafana") if you named it differently in Authentik.
+      signout_redirect_url: "https://authentik.hermnet.org/application/o/grafana/end-session/"
+    # auth.generic_oauth is a single dotted INI section name, not nested YAML.
+    # The Grafana chart template handles this correctly.
+    "auth.generic_oauth":
+      enabled: true
+      name: "Authentik"
+      # Values expanded at runtime from the grafana-oidc Secret env vars
+      client_id: "${GF_AUTH_GENERIC_OAUTH_CLIENT_ID}"
+      client_secret: "${GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET}"
+      scopes: "openid profile email"
+      empty_scopes: false
+      auth_url: "https://authentik.hermnet.org/application/o/grafana/authorize/"
+      token_url: "https://authentik.hermnet.org/application/o/token/"
+      api_url: "https://authentik.hermnet.org/application/o/userinfo/"
+      login_attribute_path: preferred_username
+      groups_attribute_path: groups
+      name_attribute_path: name
+      use_pkce: true
+      allow_sign_up: true
+      # Disable auto-login so the local break-glass form remains reachable
+      auto_login: false
+      # Role mapping: members of 'Grafana Admins' group in Authentik → Admin.
+      # Adjust the group name to match the exact group name in your Authentik instance.
+      role_attribute_path: "contains(groups[*], 'Grafana Admins') && 'Admin' || 'Viewer'"
+    users:
+      auto_assign_org: true
+      auto_assign_org_role: Viewer
+    log:
+      level: info
+
+  # Loki datasource — Prometheus is auto-provisioned by the chart
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki.monitoring.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
+      jsonData:
+        maxLines: 1000
+
+  # No PVC — all dashboards come from ConfigMaps (GitOps-restorable)
+  persistence:
+    enabled: false
+
+  # Sidecar auto-loads ConfigMaps labelled grafana_dashboard=1 (dashboards)
+  # and grafana_datasource=1 (additional datasources) from all namespaces.
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+      label: grafana_dashboard
+      labelValue: "1"
+      folderAnnotation: grafana_dashboard_folder
+      provider:
+        foldersFromFilesStructure: true
+    datasources:
+      enabled: true
+      searchNamespace: ALL
+      label: grafana_datasource
+      labelValue: "1"
+
+  serviceMonitor:
+    enabled: true
+
+  # Traefik IngressRoute is deployed separately — disable the chart's own Ingress
+  ingress:
+    enabled: false
+
+# ---------------------------------------------------------------------------
+# Prometheus
+# 30-day retention, 120Gi Longhorn PVC.
+# Cluster-wide discovery: picks up ServiceMonitors, PodMonitors, and
+# PrometheusRules in any namespace (including alloy, loki, app namespaces).
+# ---------------------------------------------------------------------------
+prometheus:
+  enabled: true
+  prometheusSpec:
+    retention: 30d
+    # Soft size cap slightly below the PVC limit to prevent the volume filling
+    # completely before the 30d time-based TTL kicks in.
+    retentionSize: "110GB"
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 120Gi
+          # allowVolumeExpansion is set on the Longhorn StorageClass, not here.
+          # To resize: edit the PVC directly; the StorageClass handles the rest.
+
+    # Nil-uses-helm-values: false + empty selectors = pick up EVERYTHING
+    # across all namespaces. Alloy's ServiceMonitor, Loki's ServiceMonitor,
+    # and any app-namespace ServiceMonitors are all collected automatically.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector: {}
+    ruleNamespaceSelector: {}
+
+    probeSelectorNilUsesHelmValues: false
+    probeSelector: {}
+    probeNamespaceSelector: {}
+
+    # Conservative limits for Pi hardware. Adjust upward if OOMing under load.
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 3Gi
+
+  serviceMonitor:
+    selfMonitor: true
+
+# ---------------------------------------------------------------------------
+# kube-state-metrics
+# ---------------------------------------------------------------------------
+kubeStateMetrics:
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# node-exporter DaemonSet — runs on all three Pi nodes
+# ---------------------------------------------------------------------------
+nodeExporter:
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# PrometheusOperator
+# Self-signed admission webhook certs (cert-manager not wired here;
+# the operator generates its own certs by default).
+# ---------------------------------------------------------------------------
+prometheusOperator:
+  enabled: true
+  admissionWebhooks:
+    enabled: true
+    certManager:
+      enabled: false

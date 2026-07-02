@@ -7,7 +7,7 @@ metadata:
 spec:
   sourcePVC: authentik-postgresql-dumps
   trigger:
-    schedule: "10 3 * * *" # after the 02:30 pg_dump completes
+    schedule: "10 3 * * *" # at 3:10am after the 02:30 pg_dump completes
   restic:
     repository: shared-b2-repo
     copyMethod: Snapshot

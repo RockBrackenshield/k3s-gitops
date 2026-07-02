@@ -14,7 +14,7 @@ metadata:
 spec:
   sourcePVC: adguard-config
   trigger:
-    schedule: "0 2 * * *"
+    schedule: "45 2 * * *"
   restic:
     pruneIntervalDays: 7
     repository: shared-b2-repo

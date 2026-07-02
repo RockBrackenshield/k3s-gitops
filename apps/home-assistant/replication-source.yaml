@@ -17,8 +17,8 @@ metadata:
 spec:
   sourcePVC: home-assistant-config
   trigger:
-    # Daily at 02:00 — stagger relative to other VolSync jobs if needed.
-    schedule: "0 2 * * *"
+    # Daily at 02:15 — stagger relative to other VolSync jobs if needed.
+    schedule: "15 2 * * *"
   restic:
     pruneIntervalDays: 7
     repository: shared-b2-repo

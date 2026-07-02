@@ -8,3 +8,4 @@ resources:
   - node-disk-config.yaml
   - ingressroute.yaml
   - volume-snapshot-class.yaml
+  - storage-class-eph.yaml

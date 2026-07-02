@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    # Upstream Helm chart
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      # renovate: registryUrl=https://prometheus-community.github.io/helm-charts chart=kube-prometheus-stack
+      targetRevision: "87.3.0"
+      helm:
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          - $values/infrastructure/monitoring/kube-prometheus-stack/values.yaml
+    # Git reference used by $values above
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      ref: values
+    # Extra raw resources: SealedSecrets + IngressRoute
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      path: infrastructure/monitoring/kube-prometheus-stack/resources
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # Required: kube-prometheus-stack CRDs exceed the 262KB client-side annotation limit.
+      # Applied at Application level; affects all three sources equally (safe for
+      # SealedSecrets and IngressRoute which are new resources with no prior field owners).
+      - ServerSideApply=true

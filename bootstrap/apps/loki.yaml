@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  sources:
+    # grafana-community/loki — the OSS chart. grafana/loki is now GEL-only (as of 2026-03-16).
+    - repoURL: https://grafana-community.github.io/helm-charts
+      chart: loki
+      # renovate: registryUrl=https://grafana-community.github.io/helm-charts chart=loki
+      targetRevision: "18.3.0"
+      helm:
+        releaseName: loki
+        valueFiles:
+          - $values/infrastructure/monitoring/loki/values.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      ref: values
+    # VolSync ReplicationSource for Loki PVC
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      path: infrastructure/monitoring/loki/resources
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,147 @@
+# Grafana Alloy Helm values
+# Role: log-only DaemonSet — collects pod logs from all three Pi nodes and
+# pushes to Loki. Prometheus metric scraping is owned by kube-prometheus-stack.
+# Alloy exposes its own alloy_* metrics; the ServiceMonitor below ensures
+# Prometheus picks them up for pipeline health monitoring.
+#
+# Key design decision vs. Promtail migration:
+#   stage.cri {} in the loki.process block parses containerd's CRI log format
+#   and explicitly extracts stream="stdout"/"stderr" as a Loki label.
+#   Without this, the stream label is silently lost on migration from Promtail.
+
+controller:
+  type: daemonset
+
+alloy:
+  configMap:
+    create: true
+    content: |
+      // ----------------------------------------------------------------
+      // 1. Discover all Kubernetes pods across all namespaces
+      // ----------------------------------------------------------------
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      // ----------------------------------------------------------------
+      // 2. Relabel: construct log file paths + promote K8s metadata
+      //    as Loki stream labels
+      // ----------------------------------------------------------------
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+
+        // Build the path to this container's log files on the node.
+        // K3s + containerd writes logs to:
+        //   /var/log/pods/<namespace>_<pod-name>_<uid>/<container>/<num>.log
+        // $1 = pod UID, $2 = container name (captured by the regex groups).
+        rule {
+          source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          regex         = "(.+)/(.+)"
+          target_label  = "__path__"
+          replacement   = "/var/log/pods/*$1*/$2/*.log"
+        }
+
+        // Standard Loki stream labels for querying and filtering
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+
+        // Prefer app.kubernetes.io/name; fall back to the plain 'app' label.
+        // Rule 1: set app from app.kubernetes.io/name (may be empty string)
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label  = "app"
+        }
+        // Rule 2: if app.kubernetes.io/name was empty, override with 'app' label.
+        // The regex ";(.+)" only matches when the first source is empty (producing
+        // a leading semicolon in the concatenated string) and 'app' is non-empty.
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_label_app"]
+          separator     = ";"
+          regex         = ";(.+)"
+          target_label  = "app"
+          replacement   = "$1"
+        }
+      }
+
+      // ----------------------------------------------------------------
+      // 3. Tail log files from discovered pod containers
+      //    File-based approach: lower memory than API-based loki.source.kubernetes;
+      //    appropriate for Pi hardware.
+      // ----------------------------------------------------------------
+      loki.source.file "pod_logs" {
+        targets    = discovery.relabel.pod_logs.targets
+        forward_to = [loki.process.cri_parse.receiver]
+      }
+
+      // ----------------------------------------------------------------
+      // 4. Parse containerd / K3s CRI log format
+      //    stage.cri{} does three things:
+      //      - Extracts stream="stdout" or stream="stderr" as a Loki label
+      //      - Strips the CRI timestamp prefix (Loki uses its own timestamp)
+      //      - Handles partial-line flags (F=full, P=partial) for multi-line logs
+      //    This is the specific fix for the stream-label loss that occurs in a
+      //    naive Promtail → Alloy migration.
+      // ----------------------------------------------------------------
+      loki.process "cri_parse" {
+        stage.cri {}
+        forward_to = [loki.write.loki.receiver]
+      }
+
+      // ----------------------------------------------------------------
+      // 5. Push logs to Loki (single-binary, no auth, no tenant header)
+      // ----------------------------------------------------------------
+      loki.write "loki" {
+        endpoint {
+          url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+        }
+      }
+
+  # Mount /var/log from the host node so Alloy can read pod log files.
+  # K3s + containerd writes logs to /var/log/pods/ — not /var/lib/docker/containers.
+  # dockercontainers=false: that mount is only for Docker-based clusters.
+  mounts:
+    varlog: true
+    dockercontainers: false
+
+  # Disable anonymous usage telemetry to Grafana Labs
+  enableReporting: false
+
+  # Conservative resource limits for Pi 4B / Pi 5 hardware.
+  # File-based log tailing is lighter than the API-based loki.source.kubernetes;
+  # 512Mi ceiling should be comfortable on a low-volume homelab cluster.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ServiceMonitor so kube-prometheus-stack Prometheus scrapes alloy_* pipeline
+# health metrics (log send rate, errors, positions). Prometheus picks this up
+# automatically via serviceMonitorSelector: {} in the kPS values.
+serviceMonitor:
+  enabled: true
+
+# ClusterRole and ClusterRoleBinding for Kubernetes service discovery
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: alloy

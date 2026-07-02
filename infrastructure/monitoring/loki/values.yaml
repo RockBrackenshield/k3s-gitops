@@ -1,0 +1,100 @@
+# Loki Helm values
+# Chart: grafana-community/loki (NOT grafana/loki — that chart is now GEL-only)
+# Mode: SingleBinary (monolithic) — appropriate for a 3-node homelab cluster
+# Storage: Longhorn PVC (60Gi); VolSync restic provides encrypted off-cluster backup
+# Retention: 14 days (336h)
+# Auth: disabled (single-tenant mode — Alloy pushes without a tenant ID header)
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+
+  commonConfig:
+    replication_factor: 1
+
+  storage:
+    type: filesystem
+
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+
+  limits_config:
+    # 14-day retention. Must be paired with compactor.retention_enabled=true below.
+    retention_period: 336h
+    max_query_lookback: 336h
+    ingestion_burst_size_mb: 10
+    ingestion_rate_mb: 5
+    # Reject samples older than 7 days to avoid backfill overwhelming the ingestor
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+    # Required for Loki 3.x structured metadata support
+    allow_structured_metadata: true
+
+  compactor:
+    # Compactor handles log chunk compaction AND retention deletion.
+    # retention_enabled=true is what actually enforces the limits_config.retention_period.
+    # Without this, logs accumulate indefinitely regardless of the retention_period setting.
+    working_directory: /var/loki/compactor/retention
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
+    delete_request_store: filesystem
+
+# ---------------------------------------------------------------------------
+# SingleBinary deployment — one replica, one Longhorn PVC
+# ---------------------------------------------------------------------------
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 60Gi
+    storageClass: longhorn
+    # allowVolumeExpansion is on the Longhorn StorageClass, not here.
+    # After resizing: also update the VolSync ReplicationSource capacity field
+    # in apps/monitoring/loki/resources/volsync-replication-source.yaml.
+
+# Disable read/write/backend — not used in SingleBinary mode
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+
+# No MinIO — using local filesystem storage on Longhorn
+minio:
+  enabled: false
+
+# No gateway needed for single-binary mode
+gateway:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Monitoring
+# Self-monitoring via grafana-agent is disabled — kube-prometheus-stack owns
+# all metric scraping. The ServiceMonitor is enabled so Prometheus picks up
+# Loki's own metrics automatically (serviceMonitorSelector: {} in kPS values).
+# ---------------------------------------------------------------------------
+monitoring:
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+  serviceMonitor:
+    enabled: true
+
+# Disable canary and test resources (not needed for homelab)
+lokiCanary:
+  enabled: false
+
+test:
+  enabled: false

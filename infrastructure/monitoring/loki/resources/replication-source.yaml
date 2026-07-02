@@ -1,0 +1,41 @@
+# VolSync ReplicationSource for the Loki Longhorn PVC.
+# Provides client-side encrypted (restic) off-cluster backup to Backblaze B2.
+# The shared-b2-repo Secret is reflected from volsync-system into monitoring
+# by Reflector — see the post-deployment step for the annotation update.
+#
+# PVC NAME — VERIFY AFTER FIRST DEPLOY:
+#   The Loki SingleBinary StatefulSet creates a PVC via its volumeClaimTemplate.
+#   Standard naming: <volumeClaimTemplate.name>-<statefulset.name>-<ordinal>
+#   Expected:        storage-loki-0
+#   Confirm with:    kubectl get pvc -n monitoring | grep loki
+#   Update sourcePVC below if the actual name differs.
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: loki-backup
+  namespace: monitoring
+spec:
+  sourcePVC: storage-loki-0  # VERIFY — see note above
+  trigger:
+    schedule: "0 */6 * * *"  # Every 6 hours
+  restic:
+    pruneIntervalDays: 7
+    # shared-b2-repo is reflected into monitoring namespace from volsync-system.
+    # Ensure the Reflector annotation update (post-deploy step) is applied first,
+    # or this ReplicationSource will fail to find the repository Secret.
+    repository: shared-b2-repo
+    retain:
+      hourly: 8
+      daily: 7
+      weekly: 4
+      monthly: 0
+    # Snapshot copyMethod: creates a VolumeSnapshot before backup, allowing
+    # the Loki PVC to remain live during the restic transfer. Requires
+    # external-snapshotter (already deployed in hermnet).
+    copyMethod: Snapshot
+    volumeSnapshotClassName: longhorn
+    # After a PVC resize: update capacity here to match the new PVC size.
+    capacity: 60Gi
+    cacheStorageClassName: longhorn-usb-eph
+    cacheCapacity: 5Gi
+    storageClassName: longhorn-usb-eph
