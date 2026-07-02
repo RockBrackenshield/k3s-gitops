@@ -4,4 +4,4 @@ kind: Kustomization
 resources:
   - sealed-grafana-admin-secret.yaml
   - sealed-grafana-oidc-secret.yaml
-  - ingressroute-grafana.yaml
+  - ingressRoute-grafana.yaml
