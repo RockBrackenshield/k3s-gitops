@@ -145,3 +145,6 @@ rbac:
 serviceAccount:
   create: true
   name: alloy
+
+# Replica count added for ability to disable application for resource conservation. 0 = disabled, 1 = live
+  replicaCount: 0
