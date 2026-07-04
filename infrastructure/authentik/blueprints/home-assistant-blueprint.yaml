@@ -1,0 +1,77 @@
+# infrastructure/authentik/home-assistant-blueprint.yaml
+#
+# ADD to infrastructure/authentik/kustomization.yaml resources before committing.
+#
+# ALSO required: this ConfigMap must be volume-mounted into your Authentik
+# server and worker pods. Add the following to your Authentik StatefulSet spec
+# under each container's volumeMounts and the pod's volumes:
+#
+#   volumeMounts:
+#     - name: blueprint-home-assistant
+#       mountPath: /blueprints/custom/home-assistant.yaml
+#       subPath: home-assistant.yaml
+#       readOnly: true
+#
+#   volumes:
+#     - name: blueprint-home-assistant
+#       configMap:
+#         name: blueprint-home-assistant
+#
+# If you already have other blueprints mounted at /blueprints/custom/ via a
+# single combined ConfigMap, add the home-assistant.yaml key to that ConfigMap
+# instead of creating a new volume mount.
+#
+# The blueprint auto-applies (instantiate: "true") when Authentik detects it.
+# After it runs, retrieve the Client ID and generated Client Secret from
+# Authentik Admin → Providers → home-assistant for use in the HA OIDC setup.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blueprint-home-assistant
+  namespace: authentik
+  labels:
+    app.kubernetes.io/name: authentik
+data:
+  home-assistant.yaml: |
+    version: 1
+    metadata:
+      name: home-assistant-oidc
+      labels:
+        blueprints.goauthentik.io/instantiate: "true"
+
+    entries:
+      - model: authentik_providers_oauth2.oauth2provider
+        state: present
+        identifiers:
+          name: home-assistant
+        attrs:
+          name: home-assistant
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          client_type: confidential
+          access_code_validity: hours=1
+          access_token_validity: minutes=5
+          refresh_token_validity: days=30
+          include_claims_in_id_token: true
+          # /auth/external/callback is HA's standard OIDC return path.
+          # Verify this once HA's OIDC is configured — it must match exactly.
+          redirect_uris:
+            - url: https://home.hermnet.org/auth/external/callback
+              matching_mode: strict
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [scope_name, email]]
+            - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
+          sub_mode: hashed_user_id
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+
+      - model: authentik_core.application
+        state: present
+        identifiers:
+          slug: home-assistant
+        attrs:
+          name: Home Assistant
+          slug: home-assistant
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, home-assistant]]
+          meta_launch_url: https://home.hermnet.org
+          policy_engine_mode: any
+          open_in_new_tab: false
