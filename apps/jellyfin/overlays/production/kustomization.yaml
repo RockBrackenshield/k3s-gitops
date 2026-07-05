@@ -15,4 +15,4 @@ patches:
       name: jellyfin
 images:
   - name: jellyfin/jellyfin
-    newTag: "10.8.0"
+    newTag: "10.11.11"
