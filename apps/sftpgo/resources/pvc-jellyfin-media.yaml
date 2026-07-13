@@ -1,0 +1,34 @@
+# apps/sftpgo/resources/pv-jellyfin-media-shared.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-media-shared-pv
+spec:
+  capacity:
+    storage: 450Gi              # must match the size on Jellyfin's actual PVC
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: longhorn-static
+  csi:
+    driver: driver.longhorn.io
+    fsType: ext4
+    volumeHandle: pvc-f80224f7-6d48-4cfb-8e5e-2de9f69da99d
+  claimRef:
+    name: jellyfin-media-shared
+    namespace: sftpgo
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-media-shared
+  namespace: sftpgo
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: longhorn-static
+  resources:
+    requests:
+      storage: 450Gi
+  volumeName: jellyfin-media-shared-pv
