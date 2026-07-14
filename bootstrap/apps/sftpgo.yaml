@@ -18,10 +18,10 @@ spec:
       ref: values
     - repoURL: https://github.com/RockBrackenshield/k3s-gitops
       targetRevision: main
-      path: apps/sftpgo/resources
+      path: apps/sftpgo
   destination:
     server: https://kubernetes.default.svc
-    namespace: jellyfin
+    namespace: sftpgo
   syncPolicy:
     automated:
       prune: true
