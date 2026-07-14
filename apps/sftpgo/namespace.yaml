@@ -1,0 +1,10 @@
+# k3s-gitops/apps/sftpgo/namespace.yaml
+# ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sftpgo
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  labels:
+    app.kubernetes.io/name: sftpgo
