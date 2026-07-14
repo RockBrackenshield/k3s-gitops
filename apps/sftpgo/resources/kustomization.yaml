@@ -4,4 +4,4 @@ kind: Kustomization
 resources:
   - ingressroute.yaml
   - sealed-sftpgo-admin-secret.yaml
-  - pvc-jellfyin-media.yaml
+  - pvc-jellyfin-media.yaml
