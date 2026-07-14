@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: jellyfin-media-shared-pv
+  name: jellyfin-media
 spec:
   capacity:
     storage: 450Gi              # must match the size on Jellyfin's actual PVC
@@ -16,13 +16,13 @@ spec:
     fsType: ext4
     volumeHandle: pvc-f80224f7-6d48-4cfb-8e5e-2de9f69da99d
   claimRef:
-    name: jellyfin-media-shared
+    name: jellyfin-media
     namespace: sftpgo
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: jellyfin-media-shared
+  name: jellyfin-media
   namespace: sftpgo
 spec:
   accessModes:
@@ -31,4 +31,4 @@ spec:
   resources:
     requests:
       storage: 450Gi
-  volumeName: jellyfin-media-shared-pv
+  volumeName: jellyfin-media
