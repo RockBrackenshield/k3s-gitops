@@ -12,3 +12,4 @@ spec:
   numberOfReplicas: 2
   accessMode: rwx
   dataLocality: disabled  # required for RWX; NFS server pod floats freely
+  frontend: blockdev
