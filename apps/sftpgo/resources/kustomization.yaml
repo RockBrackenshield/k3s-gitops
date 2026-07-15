@@ -5,3 +5,4 @@ resources:
   - ingressroute.yaml
   - sealed-sftpgo-admin-secret.yaml
   - pvc-jellyfin-media.yaml
+  - pvc-metube-downloads.yaml

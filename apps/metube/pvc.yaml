@@ -1,0 +1,16 @@
+# apps/metube/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: metube-downloads
+  namespace: metube
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: longhorn
+  volumeName: metube-downloads-metube   # statically binds to the named PV

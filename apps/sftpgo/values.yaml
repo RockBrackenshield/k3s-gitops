@@ -47,6 +47,16 @@ volumeMounts:
   - name: jellyfin-media
     mountPath: /mnt/jellyfin-media
 
+volumes:
+  - name: metube-downloads
+    persistentVolumeClaim:
+      claimName: metube-downloads
+
+volumeMounts:
+  - name: metube-downloads
+    mountPath: /mnt/metube-downloads
+
+
 service:
   type: ClusterIP
   services:

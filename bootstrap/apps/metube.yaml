@@ -1,0 +1,23 @@
+# bootstrap/apps/metube.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metube
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+    targetRevision: HEAD
+    path: apps/metube
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: metube
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false   # namespace.yaml manages this

@@ -1,0 +1,15 @@
+# apps/metube/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: metube
+  namespace: metube
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  selector:
+    app.kubernetes.io/name: metube
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http

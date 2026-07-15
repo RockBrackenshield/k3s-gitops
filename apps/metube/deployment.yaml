@@ -1,0 +1,46 @@
+# apps/metube/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metube
+  namespace: metube
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: metube
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: metube
+    spec:
+      containers:
+        - name: metube
+          image: ghcr.io/alexta69/metube:latest
+          # NOTE: MeTube does not publish semver tags; Renovate will track via digest.
+          # Pin to a digest once running: ghcr.io/alexta69/metube@sha256:<digest>
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: DEFAULT_THEME
+              value: "dark"
+            - name: DELETE_FILE_ON_TRASHCAN
+              value: "true"
+          volumeMounts:
+            - name: downloads
+              mountPath: /downloads
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m    # yt-dlp can spike during active downloads
+              memory: 512Mi
+      volumes:
+        - name: downloads
+          persistentVolumeClaim:
+            claimName: metube-downloads

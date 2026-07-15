@@ -1,0 +1,14 @@
+# apps/sftpgo/pvc-metube-downloads.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: metube-downloads
+  namespace: sftpgo
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn
+  volumeName: metube-downloads-sftpgo   # statically binds to the sftpgo-side PV

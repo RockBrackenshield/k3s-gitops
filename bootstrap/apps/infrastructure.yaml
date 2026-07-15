@@ -1,0 +1,22 @@
+# bootstrap/apps/infra-root-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-root-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"        # discover infra Applications before app Applications
+    argocd.argoproj.io/sync-options: "Prune=false"  # protect infra root from cascading prune
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+    targetRevision: HEAD
+    path: bootstrap/infrastructure
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false     # infrastructure Application CRs must never be auto-pruned
+      selfHeal: true

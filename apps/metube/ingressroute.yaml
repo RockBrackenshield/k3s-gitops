@@ -1,0 +1,22 @@
+# apps/metube/ingressroute.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: metube
+  namespace: metube
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`metube.hermnet.org`)
+      kind: Rule
+      middlewares:
+        - name: authentik-forwardauth   # ⚠️ verify this matches your actual Middleware CR name in the authentik namespace
+          namespace: authentik
+      services:
+        - name: metube
+          port: 8081
+  tls:
+    secretName: hermnet-org-wildcard-tls   # ⚠️ verify secret name; see post-checklist re: Reflector
