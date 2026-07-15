@@ -1,0 +1,7 @@
+# infrastructure/storage/metube-downloads/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - longhorn-volume.yaml
+  - pv-metube.yaml
+  - pv-sftpgo.yaml

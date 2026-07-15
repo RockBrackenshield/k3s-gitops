@@ -1,0 +1,25 @@
+# infrastructure/storage/metube-downloads/pv-metube.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: metube-downloads-metube
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: "Prune=false"
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: longhorn
+  csi:
+    driver: driver.longhorn.io
+    fsType: ext4
+    volumeHandle: metube-downloads   # must match the Longhorn Volume CR name above
+    volumeAttributes:
+      numberOfReplicas: "2"
+      staleReplicaTimeout: "2880"
+  claimRef:
+    namespace: metube
+    name: metube-downloads
