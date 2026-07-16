@@ -21,7 +21,7 @@ spec:
         - name: sftpgo
           port: 80
       middlewares:
-        - name: forwardauth-middleware   # confirm your actual Middleware name/namespace
+        - name: authentik-forwardauth   # confirm your actual Middleware name/namespace
           namespace: authentik
   tls:
     secretName: hermnet-org-tls          # confirm your actual wildcard cert Secret name
