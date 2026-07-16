@@ -1,0 +1,6 @@
+# infrastructure/tailscale/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - sealed-operator-oauth.yaml  # generated from sealed-operator-oauth.yaml.example

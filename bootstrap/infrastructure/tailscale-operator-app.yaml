@@ -1,0 +1,64 @@
+# bootstrap/infrastructure/tailscale-operator-app.yaml
+#
+# Multi-source Application:
+#   Source 1 — Helm chart deploys the operator (Deployment, RBAC, CRDs, IngressClass)
+#   Source 2 — Git path deploys the namespace and operator-oauth SealedSecret
+#
+# Both sources sync together in wave 2.
+# The tailscale-connector-app runs in wave 3 (after operator CRDs are established).
+#
+# ignoreDifferences on operator-oauth Secret:
+#   The Helm chart creates operator-oauth only when oauth.clientId is set.
+#   We intentionally omit those values and pre-create it via SealedSecrets.
+#   ignoreDifferences is a safety net: if the chart renders an empty Secret anyway,
+#   ArgoCD will not try to reconcile live data (written by SealedSecrets controller)
+#   back to Helm's empty desired state.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tailscale-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  sources:
+    - repoURL: https://pkgs.tailscale.com/helmcharts
+      chart: tailscale-operator
+      # Verify current version: helm repo add tailscale https://pkgs.tailscale.com/helmcharts && helm search repo tailscale/tailscale-operator
+      targetRevision: "1.98.4"
+      helm:
+        releaseName: tailscale-operator
+        values: |
+          operatorConfig:
+            hostname: hermnet-operator
+            logging: info
+          # oauth.clientId and oauth.clientSecret are intentionally omitted.
+          # The operator will use the pre-existing operator-oauth Secret
+          # created by the SealedSecret in infrastructure/tailscale/.
+          # Passing these values here would cause the Helm chart to manage
+          # the Secret directly, conflicting with Sealed Secrets ownership.
+
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: HEAD
+      path: infrastructure/tailscale
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tailscale
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: operator-oauth
+      namespace: tailscale
+      jsonPointers:
+        - /data
+        - /metadata/annotations

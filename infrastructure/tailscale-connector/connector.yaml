@@ -1,0 +1,38 @@
+# infrastructure/tailscale-connector/connector.yaml
+#
+# Connector is a cluster-scoped resource — no namespace field.
+# This deploys a single Tailscale node that:
+#   - Advertises 192.168.7.0/24 as a subnet route (subnet router)
+#   - Acts as an exit node for tailnet clients
+#
+# After deployment, approve the device in the Tailscale admin console:
+#   Machines → hermnet-connector → Edit route settings
+#     ✓ Accept routes: 192.168.7.0/24
+#     ✓ Use as exit node
+#
+# To avoid manual approval, add autoApprovers to your ACL:
+#   "autoApprovers": {
+#     "routes": {
+#       "192.168.7.0/24": ["tag:k8s"]
+#     },
+#     "exitNode": ["tag:k8s"]
+#   }
+apiVersion: tailscale.com/v1alpha1
+kind: Connector
+metadata:
+  name: hermnet-connector
+spec:
+  # hostname sets the device name in the tailnet admin console.
+  # Use hostname (not hostnamePrefix) for a single-replica connector.
+  hostname: hermnet-connector
+  # tags defaults to [tag:k8s]; explicitly set here for clarity.
+  # tag:k8s is owned by tag:k8s-operator per the ACL tagOwners block above,
+  # which allows the operator to manage devices bearing this tag.
+  # Tags cannot be changed after the Connector node is created.
+  tags:
+    - tag:k8s
+  exitNode: true
+  subnetRouter:
+    advertiseRoutes:
+      - "192.168.7.0/24"
+      - "192.168.1.0/24"
