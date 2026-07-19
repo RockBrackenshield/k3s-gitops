@@ -1,8 +1,8 @@
-# bootstrap/infrastructure/metube-storage.yaml
+# bootstrap/infrastructure/storage.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: metube-storage
+  name: storage
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "1"   # before MeTube app at wave 2
@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
     targetRevision: HEAD
-    path: infrastructure/storage/metube-downloads
+    path: infrastructure/storage
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system   # covers the Volume CR; PVs are cluster-scoped and require no namespace

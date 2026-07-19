@@ -1,15 +1,14 @@
-# infrastructure/storage/metube-downloads/longhorn-volume.yaml
 apiVersion: longhorn.io/v1beta2
 kind: Volume
 metadata:
-  name: metube-downloads
+  name: media
   namespace: longhorn-system
   annotations:
     argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: "Prune=false"
 spec:
-  size: "10737418240"   # 10Gi — adjust to your expected media volume
+  size: "549755813888"  # ~500Gi
   numberOfReplicas: 1
   accessMode: rwx
-  dataLocality: disabled  # required for RWX; NFS server pod floats freely
+  dataLocality: disabled
   frontend: blockdev

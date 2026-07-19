@@ -1,14 +1,13 @@
-# infrastructure/storage/metube-downloads/pv-sftpgo.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: metube-downloads-sftpgo
+  name: sftpgo-media
   annotations:
     argocd.argoproj.io/sync-wave: "1"
     argocd.argoproj.io/sync-options: "Prune=false"
 spec:
   capacity:
-    storage: 10Gi
+    storage: 500Gi
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
@@ -16,10 +15,10 @@ spec:
   csi:
     driver: driver.longhorn.io
     fsType: ext4
-    volumeHandle: metube-downloads   # same volumeHandle — both PVs point at the same Longhorn volume
+    volumeHandle: media
     volumeAttributes:
       numberOfReplicas: "1"
       staleReplicaTimeout: "2880"
   claimRef:
     namespace: sftpgo
-    name: metube-downloads
+    name: media

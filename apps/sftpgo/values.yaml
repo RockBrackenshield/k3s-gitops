@@ -39,13 +39,13 @@ persistence:
     storageClassName: longhorn        # confirm your actual StorageClass name
 
 volumes:
-  - name: jellyfin-media
+  - name: sftpgo-media
     persistentVolumeClaim:
-      claimName: jellyfin-media       # the RWX PVC from step 5
+      claimName: sftpgo-media       # the RWX PVC from step 5
 
 volumeMounts:
-  - name: jellyfin-media
-    mountPath: /mnt/jellyfin-media
+  - name: sftpgo-media
+    mountPath: /mnt/media
 
 volumes:
   - name: metube-downloads

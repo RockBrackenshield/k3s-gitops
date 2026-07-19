@@ -16,4 +16,5 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 450Gi
+      storage: 500Gi
+  volumeName: media-jellyfin
