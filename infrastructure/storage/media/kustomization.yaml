@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
   - longhorn-volume.yaml
   - pv-jellyfin.yaml
-  - pv-nextcloud.yaml
-  #- pv-sftpgo.yaml
+  #- pv-nextcloud.yaml
+  - pv-sftpgo.yaml
