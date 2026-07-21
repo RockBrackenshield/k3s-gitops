@@ -21,4 +21,4 @@ spec:
       staleReplicaTimeout: "2880"
   claimRef:
     namespace: sftpgo
-    name: media
+    name: sftpgo-media-rwx

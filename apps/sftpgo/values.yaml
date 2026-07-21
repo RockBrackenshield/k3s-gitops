@@ -39,12 +39,12 @@ persistence:
     storageClassName: longhorn        # confirm your actual StorageClass name
 
 volumes:
-  - name: sftpgo-media
+  - name: sftpgo-media-rwx
     persistentVolumeClaim:
       claimName: sftpgo-media       # the RWX PVC from step 5
 
 volumeMounts:
-  - name: sftpgo-media
+  - name: sftpgo-media-rwx
     mountPath: /mnt/media
 
 volumes:
