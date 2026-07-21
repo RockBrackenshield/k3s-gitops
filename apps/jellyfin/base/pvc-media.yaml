@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: jellyfin-media
+  name: jellyfin-media-rwx
   namespace: jellyfin
   annotations:
     argocd.argoproj.io/sync-wave: "-1"

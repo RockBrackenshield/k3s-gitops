@@ -62,12 +62,12 @@ spec:
           volumeMounts:
             - name: jellyfin-config
               mountPath: /config
-            - name: jellyfin-media
+            - name: jellyfin-media-rwx
               mountPath: /mnt/media 
       volumes:
         - name: jellyfin-config
           persistentVolumeClaim:
             claimName: jellyfin-config
-        - name: jellyfin-media
+        - name: jellyfin-media-rwx
           persistentVolumeClaim:
-            claimName: jellyfin-media
+            claimName: jellyfin-media-rwx
