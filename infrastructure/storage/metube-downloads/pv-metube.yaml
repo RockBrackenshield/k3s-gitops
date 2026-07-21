@@ -18,7 +18,7 @@ spec:
     fsType: ext4
     volumeHandle: metube-downloads   # must match the Longhorn Volume CR name above
     volumeAttributes:
-      numberOfReplicas: "1"
+      numberOfReplicas: "2"
       staleReplicaTimeout: "2880"
   claimRef:
     namespace: metube

@@ -18,7 +18,7 @@ spec:
     fsType: ext4
     volumeHandle: metube-downloads   # same volumeHandle — both PVs point at the same Longhorn volume
     volumeAttributes:
-      numberOfReplicas: "1"
+      numberOfReplicas: "2"
       staleReplicaTimeout: "2880"
   claimRef:
     namespace: sftpgo
