@@ -1,0 +1,23 @@
+# bootstrap/infrastructure/external-services.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-services
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"   # Just Traefik routes, nothing critical
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+    targetRevision: HEAD
+    path: infrastructure/external-services
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-services
+  syncPolicy:
+    automated:
+      prune: false   # storage infrastructure must never be auto-pruned
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
