@@ -17,7 +17,7 @@ spec:
     namespace: external-services
   syncPolicy:
     automated:
-      prune: false   # storage infrastructure must never be auto-pruned
+      prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=false
