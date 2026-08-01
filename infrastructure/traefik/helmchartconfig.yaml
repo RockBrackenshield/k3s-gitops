@@ -38,6 +38,18 @@ spec:
     additionalArguments:
       - "--entryPoints.web.forwardedHeaders.trustedIPs=127.0.0.1/32,10.42.0.0/16,10.43.0.0/16"
       - "--entryPoints.websecure.forwardedHeaders.trustedIPs=127.0.0.1/32,10.42.0.0/16,10.43.0.0/16"
+      - "--providers.file.directory=/config/dynamic" # This and the line below allow for dynamic file provision, key for external-services.
+      - "--providers.file.watch=true"
+
+    deployment:
+      additionalVolumes:
+        - name: external-services-config
+          configMap:
+            name: traefik-external-services
+    additionalVolumeMounts:
+      - name: external-services-config
+        mountPath: /config/dynamic
+        readOnly: true
 
     ports:
       web:

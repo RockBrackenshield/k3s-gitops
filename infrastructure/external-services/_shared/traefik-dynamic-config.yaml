@@ -1,0 +1,30 @@
+# external-services/_shared/traefik-dynamic-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-external-services
+  namespace: traefik
+data:
+  dynamic.yaml: |
+    http:
+      routers:
+        unifi:
+          rule: "Host(`unifi.hermnet.org`)"
+          entryPoints: ["websecure"]
+          service: unifi
+          tls: {}
+        dockhand:
+          rule: "Host(`dockhand.hermnet.org`)"
+          entryPoints: ["websecure"]
+          service: dockhand
+          tls: {}
+      services:
+        unifi:
+          loadBalancer:
+            servers:
+              - url: "https://192.168.1.1:443"
+            serversTransport: skip-tls-verify@kubernetescrd
+        dockhand:
+          loadBalancer:
+            servers:
+              - url: "http://192.168.7.11:3000"
