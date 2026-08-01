@@ -1,0 +1,26 @@
+# k3s-gitops/infrastructure/external-services/dockhand/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: dockhand
+  namespace: external-services
+spec:
+  ports:
+    - name: http
+      port: 3000
+      protocol: TCP
+  # No selector — Kubernetes won't auto-manage endpoints.
+  # The companion Endpoints object below provides the real target IP:port.
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: dockhand        # Must exactly match the Service name above.
+  namespace: external-services
+subsets:
+  - addresses:
+      - ip: 192.168.7.11
+    ports:
+      - name: http
+        port: 3000
+        protocol: TCP

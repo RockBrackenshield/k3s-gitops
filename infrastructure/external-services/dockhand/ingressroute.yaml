@@ -1,0 +1,18 @@
+# k3s-gitops/infrastructure/external-services/dockhand/ingressroute.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dockhand
+  namespace: external-services
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`dockhand.hermnet.org`)
+      kind: Rule
+      services:
+        - name: dockhand
+          port: 3000
+          scheme: http        # Upstream speaks plain HTTP on :3000 — Traefik terminates TLS in front of it
+  tls:
+    secretName: wildcard-hermnet-org-tls
