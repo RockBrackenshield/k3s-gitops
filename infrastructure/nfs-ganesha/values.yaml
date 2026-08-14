@@ -46,7 +46,7 @@ resources:
     memory: 512Mi
 
 nodeSelector:
-  kubernetes.io/hostname: "<PI5_NODE_NAME>"   # TODO: run `kubectl get nodes` and substitute
+  kubernetes.io/hostname: "k3s-master"   # TODO: run `kubectl get nodes` and substitute
                                                 # the Pi 5's actual node name — pinning here
                                                 # since this pod is now a single point of
                                                 # failure for all media access.
