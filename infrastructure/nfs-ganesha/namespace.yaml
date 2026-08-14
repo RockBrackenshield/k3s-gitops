@@ -1,10 +1,10 @@
-# k3s-gitops/apps/sftpgo/namespace.yaml
+# infrastructure/nfs-ganesha/namespace.yaml
 # ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: sftpgo
+  name: nfs-ganesha
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
   labels:
-    app.kubernetes.io/name: sftpgo
+    app.kubernetes.io/name: nfs-ganesha

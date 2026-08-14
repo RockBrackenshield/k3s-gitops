@@ -1,0 +1,32 @@
+# bootstrap/infrastructurenfs-ganesha.yaml
+# ---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nfs-ganesha
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner/
+      chart: nfs-server-provisioner
+      targetRevision: 1.8.0
+      helm:
+        releaseName: nfs-ganesha
+        valueFiles:
+          - $values/infrastructure/nfs-ganesha/values.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: HEAD
+      ref: values
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: HEAD
+      path: infrastructure/nfs-ganesha
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nfs-ganesha
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

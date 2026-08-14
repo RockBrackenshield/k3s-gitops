@@ -1,0 +1,31 @@
+# infrastructure/nfs-ganesha/service-lan.yaml
+# ---
+# Reuses 192.168.7.203, freed up by SFTPGo's decommission.
+# Confirm the old SFTPGo Service is actually gone before applying, to avoid a VIP conflict.
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-ganesha-lan
+  namespace: nfs-ganesha
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app: nfs-ganesha
+    app.kubernetes.io/name: nfs-ganesha
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.7.203
+  selector:
+    app: nfs-ganesha
+    release: nfs-ganesha
+  ports:
+    - {name: nfs, port: 2049, targetPort: 2049, protocol: TCP}
+    - {name: nfs-udp, port: 2049, targetPort: 2049, protocol: UDP}
+    - {name: mountd, port: 20048, targetPort: 20048, protocol: TCP}
+    - {name: mountd-udp, port: 20048, targetPort: 20048, protocol: UDP}
+    - {name: rpcbind, port: 111, targetPort: 111, protocol: TCP}
+    - {name: rpcbind-udp, port: 111, targetPort: 111, protocol: UDP}
+    - {name: nlockmgr, port: 32803, targetPort: 32803, protocol: TCP}
+    - {name: nlockmgr-udp, port: 32803, targetPort: 32803, protocol: UDP}
+    - {name: statd, port: 662, targetPort: 662, protocol: TCP}
+    - {name: statd-udp, port: 662, targetPort: 662, protocol: UDP}

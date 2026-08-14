@@ -1,3 +1,5 @@
+# infrastructure/storage/media/longhorn-volume.yaml
+# ---
 apiVersion: longhorn.io/v1beta2
 kind: Volume
 metadata:
@@ -9,6 +11,6 @@ metadata:
 spec:
   size: "549755813888"  # ~500Gi
   numberOfReplicas: 1
-  accessMode: rwx
+  accessMode: rwo
   dataLocality: disabled
   frontend: blockdev

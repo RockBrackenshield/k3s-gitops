@@ -1,0 +1,20 @@
+# infrastructure/storage/nfs-ganesha/pvc-export.yaml
+# ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ganesha-export
+  namespace: nfs-ganesha
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app: nfs-ganesha
+    app.kubernetes.io/name: nfs-ganesha
+spec:
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+  volumeName: media-ganesha

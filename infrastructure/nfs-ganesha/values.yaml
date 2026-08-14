@@ -1,0 +1,52 @@
+# infrastructure/nfs-ganesha/values.yaml
+replicaCount: 1
+
+image:
+  repository: registry.k8s.io/sig-storage/nfs-provisioner
+  tag: v6.5
+  pullPolicy: IfNotPresent
+
+nameOverride: nfs-ganesha
+fullnameOverride: nfs-ganesha
+
+service:
+  type: ClusterIP
+  nfsPort: 2049
+  mountdPort: 20048
+  rpcbindPort: 111
+  rquotadPort: 875
+  nlockmgrPort: 32803
+  statdPort: 662
+
+persistence:
+  enabled: true
+  existingClaim: ganesha-export
+
+storageClass:
+  create: true
+  name: nfs-ganesha
+  defaultClass: false
+  reclaimPolicy: Retain    # deleting a consumer PVC releases, doesn't delete — no VolSync
+                            # backup exists for media, so this is the safety margin.
+  allowVolumeExpansion: true
+  mountOptions:
+    - vers=4.1
+    - retrans=2
+    - timeo=30
+
+rbac:
+  create: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector:
+  kubernetes.io/hostname: "<PI5_NODE_NAME>"   # TODO: run `kubectl get nodes` and substitute
+                                                # the Pi 5's actual node name — pinning here
+                                                # since this pod is now a single point of
+                                                # failure for all media access.

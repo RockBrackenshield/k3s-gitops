@@ -1,7 +1,9 @@
+# infrastructure/storage/media/pv-ganesha.yaml
+# ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: sftpgo-media
+  name: media-ganesha
   annotations:
     argocd.argoproj.io/sync-wave: "1"
     argocd.argoproj.io/sync-options: "Prune=false"
@@ -9,7 +11,7 @@ spec:
   capacity:
     storage: 500Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: longhorn
   csi:
@@ -20,5 +22,5 @@ spec:
       numberOfReplicas: "1"
       staleReplicaTimeout: "2880"
   claimRef:
-    namespace: sftpgo
-    name: sftpgo-media-rwx
+    namespace: nfs-ganesha
+    name: ganesha-export
