@@ -22,7 +22,7 @@ spec:
       helm:
         releaseName: barman-cloud
         valueFiles:
-          - $values/infrastructure/cloudnative-pg/values-barman-cloud-plugin.yaml
+          - $values/infrastructure/cloudnative-pg/values-barman.yaml
   destination:
     server: https://kubernetes.default.svc
     # Plugin MUST live in the same namespace as the operator install.

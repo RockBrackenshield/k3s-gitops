@@ -32,7 +32,7 @@ spec:
         # doesn't need to change even though the Application file itself
         # moved to bootstrap/infrastructure/.
         valueFiles:
-          - $values/infrastructure/cloudnative-pg/values-operator.yaml
+          - $values/infrastructure/cloudnative-pg/values-cnpg.yaml
 
     # 3. Namespace + (once generated) the shared B2 credential SealedSecret,
     #    declared explicitly rather than left to CreateNamespace=true, so
