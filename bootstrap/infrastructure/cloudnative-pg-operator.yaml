@@ -11,6 +11,12 @@ metadata:
 spec:
   project: default   # set to your actual AppProject if not using "default"
   sources:
+    # 1. Values-only reference — never deployed on its own, just makes the
+    #    git repo's contents addressable as $values above. Placed here to try to resolve argo-cd#18264 issues
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: main
+      ref: values
+
     # 1. The operator itself, from the upstream Helm chart.
     - repoURL: https://cloudnative-pg.github.io/charts
       chart: cloudnative-pg
@@ -28,12 +34,6 @@ spec:
         valueFiles:
           - $values/infrastructure/cloudnative-pg/values-operator.yaml
 
-    # 2. Values-only reference — never deployed on its own, just makes the
-    #    git repo's contents addressable as $values above.
-    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
-      targetRevision: main
-      ref: values
-
     # 3. Namespace + (once generated) the shared B2 credential SealedSecret,
     #    declared explicitly rather than left to CreateNamespace=true, so
     #    the namespace's labels (Kyverno-relevant) are actually applied.
@@ -46,7 +46,7 @@ spec:
     namespace: cnpg-system
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       # CNPG's Cluster CRD in particular is large enough to trip the

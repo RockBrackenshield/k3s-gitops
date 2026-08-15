@@ -11,6 +11,9 @@ metadata:
 spec:
   project: default
   sources:
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: main
+      ref: values
     - repoURL: https://cloudnative-pg.github.io/charts
       chart: plugin-barman-cloud
       # Recommended: 1.27.0+ operator improves plugin status reporting/error
@@ -20,16 +23,13 @@ spec:
         releaseName: barman-cloud
         valueFiles:
           - $values/infrastructure/cloudnative-pg/values-barman-cloud-plugin.yaml
-    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
-      targetRevision: main
-      ref: values
   destination:
     server: https://kubernetes.default.svc
     # Plugin MUST live in the same namespace as the operator install.
     namespace: cnpg-system
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - ServerSideApply=true
