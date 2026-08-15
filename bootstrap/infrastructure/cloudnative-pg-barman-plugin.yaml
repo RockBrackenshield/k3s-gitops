@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudnative-pg-barman-cloud-plugin
+  namespace: argocd
+  annotations:
+    # Must land after the operator (wave 1) and after cert-manager, whose CRDs
+    # it depends on for operator<->plugin TLS. It must also be Healthy before
+    # any app's Cluster CR that references `plugins: [barman-cloud.cloudnative-pg.io]`.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  sources:
+    - repoURL: https://cloudnative-pg.github.io/charts
+      chart: plugin-barman-cloud
+      # Recommended: 1.27.0+ operator improves plugin status reporting/error
+      # handling — pin a plugin chart version tested against your operator pin.
+      targetRevision: "0.7.1"
+      helm:
+        releaseName: barman-cloud
+        valueFiles:
+          - $values/infrastructure/cloudnative-pg/values-barman-cloud-plugin.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    # Plugin MUST live in the same namespace as the operator install.
+    namespace: cnpg-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      # No third (namespace-owning) source here — the operator Application
+      # (wave 1) already declares cnpg-system. This just guards against
+      # this Application ever syncing before that one does.
+      - CreateNamespace=true

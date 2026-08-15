@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudnative-pg-operator
+  namespace: argocd
+  annotations:
+    # Operator must land before any app's Cluster/ObjectStore CRs.
+    # Adjust this number to sit alongside your existing Application-level wave scheme
+    # (after Sealed Secrets/Reflector/cert-manager, before app-tier Applications).
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default   # set to your actual AppProject if not using "default"
+  sources:
+    # 1. The operator itself, from the upstream Helm chart.
+    - repoURL: https://cloudnative-pg.github.io/charts
+      chart: cloudnative-pg
+      # Pin explicitly — check `helm search repo cnpg/cloudnative-pg --versions`.
+      # Confirm the chart maps to operator >=1.29.1 / >=1.28.3 (CVE-2026-44477 fix)
+      # and ideally the latest patch, given the subsequent operator<->instance-manager
+      # auth hardening. Do not track a floating tag.
+      targetRevision: "0.29.0"
+      helm:
+        releaseName: cnpg
+        # Path here is resolved against the *values* source's repo root below,
+        # not against this Application manifest's own location — so this
+        # doesn't need to change even though the Application file itself
+        # moved to bootstrap/infrastructure/.
+        valueFiles:
+          - $values/infrastructure/cloudnative-pg/values-operator.yaml
+
+    # 2. Values-only reference — never deployed on its own, just makes the
+    #    git repo's contents addressable as $values above.
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: main
+      ref: values
+
+    # 3. Namespace + (once generated) the shared B2 credential SealedSecret,
+    #    declared explicitly rather than left to CreateNamespace=true, so
+    #    the namespace's labels (Kyverno-relevant) are actually applied.
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: main
+      path: infrastructure/cloudnative-pg
+      # ArgoCD auto-detects the kustomization.yaml in this path.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cnpg-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # CNPG's Cluster CRD in particular is large enough to trip the
+      # last-applied-configuration annotation size limit under client-side
+      # apply — same class of issue you already worked around for
+      # kube-prometheus-stack and external-snapshotter.
+      - ServerSideApply=true
+      # Defensive fallback only — source 3 above is what actually declares
+      # and labels the namespace; this just avoids a chicken-and-egg failure
+      # if sync ordering ever puts the Helm source ahead of it.
+      - CreateNamespace=true

@@ -1,0 +1,32 @@
+# Values for the cnpg/cloudnative-pg operator chart.
+# Reference: https://github.com/cloudnative-pg/charts/tree/main/charts/cloudnative-pg
+
+config:
+  # Cluster-wide (watches all namespaces). Single-namespace mode isn't worth the
+  # RBAC complexity here since there's one admin and Applications are already
+  # the trust boundary in this repo.
+  clusterWide: true
+
+crds:
+  create: true
+
+monitoring:
+  # kube-prometheus-stack is already deployed; wire the operator's own metrics
+  # in via PodMonitor rather than standing up a separate scrape config.
+  podMonitorEnabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 100Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Satisfies the require-non-root / disallow-privileged Kyverno policies already
+# audited cluster-wide; the chart's defaults already run as non-root, this is
+# explicit for clarity and to survive future chart default changes.
+securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault

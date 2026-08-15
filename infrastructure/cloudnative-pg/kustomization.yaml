@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# This directory is now synced as the THIRD `sources[]` entry on
+# bootstrap/infrastructure/cloudnative-pg-operator.yaml, not as its own
+# ArgoCD Application. Application manifests live in bootstrap/infrastructure/
+# — do not add them back here.
+resources:
+  - namespace.yaml
+  - sealed-barman-b2-credentials-secret.yaml
+
+# values-operator.yaml / values-barman-cloud-plugin.yaml are consumed
+# directly by ArgoCD via the `ref: values` git source on each Application —
+# they are not standalone k8s manifests, so they stay out of `resources`
+# here (kustomize build would fail trying to parse them as objects).
+#
+# b2-credentials.sealedsecret.yaml.example is a template, not a resource —
+# it's intentionally excluded until you generate the real sealed output.
