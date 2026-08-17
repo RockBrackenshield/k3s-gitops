@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-samba
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # RWO backing PVC
+  selector:
+    matchLabels:
+      app: paperless-samba
+  template:
+    metadata:
+      labels:
+        app: paperless-samba
+    spec:
+      containers:
+        - name: samba
+          image: ghcr.io/servercontainers/samba:smbd-only-latest
+          # "smbd-only" variant: no Avahi/WSDD2 broadcast daemons - we don't
+          # need LAN discovery, csi-driver-smb connects by IP directly.
+          ports:
+            - name: smb
+              containerPort: 445
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: SAMBA_CONF_LOG_LEVEL
+              value: "2"
+            - name: SAMBA_CONF_WORKGROUP
+              value: HERMNET
+            - name: UID_paperless
+              value: "1000"
+            - name: GROUP_paperless
+              value: "1000"
+            - name: ACCOUNT_paperless
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-samba-creds
+                  key: password
+            - name: SAMBA_VOLUME_CONFIG_printerscans
+              value: >-
+                [printerscans]; path=/shares/printerscans;
+                valid users = paperless; guest ok = no; read only = no;
+                browseable = yes
+          volumeMounts:
+            - name: printerscans
+              mountPath: /shares/printerscans
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            capabilities:
+              add:
+                - CAP_NET_BIND_SERVICE # not strictly required (445 rootless
+                                        # is fine on modern kernels), kept
+                                        # explicit for clarity
+      volumes:
+        - name: printerscans
+          persistentVolumeClaim:
+            claimName: paperless-samba-backing

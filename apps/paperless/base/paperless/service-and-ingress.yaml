@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: paperless
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  selector:
+    app: paperless
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+# No ForwardAuth middleware attached - Authentik integration intentionally
+# deferred per current requirements. Paperless isn't in the never-ForwardAuth
+# list (unlike Jellyfin/Nextcloud/Collabora/Home Assistant), so this is easy
+# to add later: attach the existing Authentik ForwardAuth middleware to this
+# IngressRoute's routes[].middlewares once you're ready.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: paperless
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`paperless.hermnet.org`)
+      kind: Rule
+      services:
+        - name: paperless
+          port: 8000
+  tls:
+    secretName: wildcard-hermnet-org-tls

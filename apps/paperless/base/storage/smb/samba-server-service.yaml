@@ -1,0 +1,23 @@
+# Assumption, not a live cluster query: per stored context the LB-IPAM pool
+# (192.168.7.200-220) currently has .202 (AdGuard), .203 (media
+# nfs-ganesha), and .205 (Traefik) taken. This claims the next free
+# sequential pair - .206 for Samba, .207 for this app's nfs-ganesha
+# service. Confirm nothing else has landed on those two before applying.
+apiVersion: v1
+kind: Service
+metadata:
+  name: paperless-samba
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    metallb.universe.tf/loadBalancerIPs: "192.168.7.206"
+    metallb.universe.tf/address-pool: "infrastructure-pool"
+    #lbipam.cilium.io/ips: "192.168.7.206"
+spec:
+  type: LoadBalancer
+  selector:
+    app: paperless-samba
+  ports:
+    - name: smb
+      port: 445
+      targetPort: 445

@@ -1,0 +1,9 @@
+# k3s-gitops/infrastructure/zot/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zot
+  labels:
+    app.kubernetes.io/name: zot
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"

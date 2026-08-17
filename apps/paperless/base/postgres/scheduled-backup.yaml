@@ -1,0 +1,19 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: paperless-postgres-nightly
+  namespace: paperless
+  annotations:
+    # Bumped to wave 2 (Cluster is wave 1) - not strictly required since the
+    # ScheduledBackup controller just retries until the Cluster exists, but
+    # explicit ordering beats relying on that retry behavior.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  # 6-field cron (seconds first) — not standard crontab syntax.
+  schedule: "0 0 3 * * *"   # 03:00 daily
+  backupOwnerReference: self
+  cluster:
+    name: paperless-postgres
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io

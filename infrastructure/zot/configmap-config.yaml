@@ -1,0 +1,65 @@
+# k3s-gitops/infrastructure/zot/configmap-config.yaml
+#
+# Mounted into the pod by the zot chart because values.yaml sets
+# `mountConfig: true` with an empty `configFiles`, which tells the chart
+# "this ConfigMap is externally managed" — it expects a ConfigMap named
+# "<release-name>-config" to already exist. Release name is "zot", so this
+# must be named "zot-config".
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zot-config
+  namespace: zot
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app: zot
+    app.kubernetes.io/name: zot-config
+data:
+  config.json: |
+    {
+      "distSpecVersion": "1.1.1",
+      "storage": {
+        "rootDirectory": "/var/lib/registry",
+        "dedupe": true,
+        "gc": true,
+        "gcDelay": "1h",
+        "gcInterval": "24h"
+      },
+      "http": {
+        "address": "0.0.0.0",
+        "port": "5000",
+        "realm": "zot",
+        "externalUrl": "https://registry.hermnet.org",
+        "auth": {
+          "htpasswd": {
+            "path": "/secret/htpasswd"
+          },
+          "failDelay": 5
+        },
+        "accessControl": {
+          "adminPolicy": {
+            "users": ["admin"],
+            "actions": ["read", "create", "update", "delete"]
+          }
+        }
+      },
+      "log": {
+        "level": "info",
+        "output": "/dev/stdout"
+      },
+      "extensions": {
+        "ui": {
+          "enable": true
+        },
+        "search": {
+          "enable": true
+        },
+        "metrics": {
+          "enable": true,
+          "prometheus": {
+            "path": "/metrics"
+          }
+        }
+      }
+    }

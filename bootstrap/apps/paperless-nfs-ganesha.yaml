@@ -1,0 +1,52 @@
+# Second, fully independent NFS-Ganesha release, dedicated to Paperless's
+# consume/Network-NFS subdirectory. Per established practice, a new consumer
+# needing isolated NFS storage gets its own Ganesha release + Longhorn
+# volume rather than sharing the media instance. Deployed into the
+# `paperless` namespace (single-consumer storage, co-located with its app).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paperless-nfs-ganesha
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3" # dependent resource wave - needs Longhorn already present
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner/
+    chart: nfs-server-provisioner
+    # Verify this against the version your existing media nfs-ganesha
+    # release is pinned to (`helm history` / that Application's manifest)
+    # and match it for consistency, or run
+    # `helm search repo nfs-ganesha-server-and-external-provisioner --versions`
+    # for current latest.
+    targetRevision: 1.8.0
+    helm:
+      releaseName: paperless-nfs-ganesha
+      values: |
+        replicaCount: 1
+        persistence:
+          enabled: true
+          storageClass: "longhorn-usb"
+          size: 20Gi
+        storageClass:
+          name: nfs-ganesha-paperless
+          reclaimPolicy: Retain
+          archiveOnDelete: "true"
+        service:
+          type: LoadBalancer
+          annotations:
+            lbipam.cilium.io/ips: "192.168.7.207"
+        # Field names above mirror the well-known layout of this chart's
+        # values.yaml; cross-check against your existing media release's
+        # values before applying, since exact keys can shift between
+        # chart versions.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: paperless
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,128 @@
+# Single container per upstream architecture: the "webserver" image runs
+# the web UI, the scheduler, and the consumer/task worker together via
+# s6-overlay internally - there is no separate consumer or scheduler
+# Deployment to manage.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # RWO PVCs
+  selector:
+    matchLabels:
+      app: paperless
+  template:
+    metadata:
+      labels:
+        app: paperless
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: paperless
+          # Latest stable as of this manifest: v3.0.5. Renovate tracks this
+          # tag automatically (its Kubernetes-manifest manager scans `image:`
+          # fields) - no separate renovate.json entry needed.
+          image: ghcr.io/paperless-ngx/paperless-ngx:3.0.5
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: PAPERLESS_URL
+              value: https://paperless.hermnet.org
+            - name: PAPERLESS_TIME_ZONE
+              value: Etc/UTC # adjust to your actual TZ
+            - name: PAPERLESS_REDIS
+              value: redis://paperless-redis.paperless.svc.cluster.local:6379
+            - name: PAPERLESS_DBENGINE
+              value: postgresql
+            - name: PAPERLESS_DBHOST
+              value: paperless-postgres-rw.paperless.svc.cluster.local
+            - name: PAPERLESS_DBPORT
+              value: "5432"
+            - name: PAPERLESS_DBNAME
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-postgres-app
+                  key: dbname
+            - name: PAPERLESS_DBUSER
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-postgres-app
+                  key: user
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-postgres-app
+                  key: password
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-env
+                  key: secret-key
+            - name: PAPERLESS_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-env
+                  key: admin-user
+            - name: PAPERLESS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-env
+                  key: admin-password
+            - name: PAPERLESS_CONSUMER_RECURSIVE
+              value: "true"
+            - name: PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS
+              value: "true"
+            - name: PAPERLESS_CONSUMER_POLLING
+              # Both consume sources are network filesystems (SMB, NFS);
+              # neither supports inotify, so polling has to cover the whole
+              # consume tree - there's no per-subdirectory polling toggle.
+              value: "30"
+          volumeMounts:
+            - name: data
+              mountPath: /usr/src/paperless/data
+            - name: media
+              mountPath: /usr/src/paperless/media
+            - name: consume-smb
+              mountPath: /usr/src/paperless/consume/Printer-SMB
+            - name: consume-nfs
+              mountPath: /usr/src/paperless/consume/Network-NFS
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: paperless-data
+        - name: media
+          persistentVolumeClaim:
+            claimName: paperless-media
+        - name: consume-smb
+          persistentVolumeClaim:
+            claimName: paperless-consume-smb
+        - name: consume-nfs
+          persistentVolumeClaim:
+            claimName: paperless-consume-nfs

@@ -1,0 +1,44 @@
+# k3s-gitops/bootstrap/infrastructure/zot.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zot
+  namespace: argocd
+  annotations:
+    # "Dependent resources" tier: zot needs Longhorn (storage class),
+    # Sealed Secrets (to unseal zot-secret), cert-manager (wildcard TLS
+    # secret already issued), and Traefik (ingress) already running.
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  sources:
+    # ref: values MUST be listed before the chart source below, or $values
+    # fails to resolve in helm.valueFiles.
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: HEAD
+      ref: values
+
+    - repoURL: https://zotregistry.dev/helm-charts
+      chart: zot
+      targetRevision: 0.1.122
+      helm:
+        releaseName: zot
+        valueFiles:
+          - $values/infrastructure/zot/values.yaml
+
+    # Namespace, PVC, ConfigMap, SealedSecret — plain manifests, not part
+    # of the chart, applied from the same repo via a Kustomize path.
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops.git
+      targetRevision: HEAD
+      path: infrastructure/zot
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: zot
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=false

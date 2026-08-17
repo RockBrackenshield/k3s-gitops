@@ -1,0 +1,70 @@
+# Dedicated in-namespace Postgres, via the CloudNativePG operator you
+# already run cluster-wide (same operator, per-app Cluster CR - not a
+# separate database engine deployment).
+#
+# WAL archiving IS wired up here via the Barman Cloud plugin - see
+# object-store.yaml in this directory for the destination config, and
+# scheduled-backup.yaml for the nightly cadence. Requires
+# cloudnative-pg-barman-cloud-plugin (bootstrap/infrastructure/) to already
+# be Healthy, and the cnpg-barman-b2-credentials secret to have been
+# reflected into this namespace before this Cluster's ObjectStore can
+# actually archive successfully.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: paperless-postgres
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: Prune=false # data-bearing
+spec:
+  # Single Longhorn-capable node today (the master's USB-backed volume) means
+  # true HA (instances: 3 + podAntiAffinity across nodes) isn't achievable
+  # yet. instances: 1 is the honest reflection of current hardware, not a
+  # design choice - bump this once storage is spread across nodes.
+  instances: 1
+
+  # Pin explicitly and manage via Renovate like everything else here, rather
+  # than floating on a tag. Verify current standard/minimal image + tag
+  # against https://github.com/cloudnative-pg/postgres-containers before
+  # applying - "system" image flavors are being phased out in favor of
+  # standard/minimal + this plugin.
+  imageName: ghcr.io/cloudnative-pg/postgresql:17-standard-bookworm
+
+  storage:
+    storageClass: longhorn
+    size: 10Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+
+  bootstrap:
+    initdb:
+      database: paperless
+      owner: paperless
+      # Operator auto-generates and manages `paperless-postgres-app` (a
+      # kubernetes.io/basic-auth Secret) unless you supply your own via
+      # bootstrap.initdb.secret. Unlike other credentials in this repo, this
+      # one is intentionally NOT pre-sealed in Git - it's operator-owned and
+      # rotated in-cluster. paperless/deployment.yaml already references
+      # `paperless-postgres-app` directly for its DB env vars - confirmed
+      # correct, no change needed there.
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: paperless-postgres-store
+
+  monitoring:
+    enablePodMonitor: true

@@ -1,0 +1,29 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: paperless-postgres-store
+  namespace: paperless
+  annotations:
+    # Must exist and be reconciled before the Cluster CR references it.
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  retentionPolicy: "30d"
+  configuration:
+    # Dedicated bucket recommended (see b2-credentials.sealedsecret.yaml.example
+    # for the enterprise-vs-homelab reasoning on bucket separation). If reusing
+    # hermnet-restic-private, at minimum give this its own path prefix.
+    destinationPath: "s3://hermnet-barman-cnpg/paperless-postgres"
+    endpointURL: "https://s3.us-east-005.backblazeb2.com"
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-barman-b2-credentials
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-barman-b2-credentials
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
+      jobs: 2

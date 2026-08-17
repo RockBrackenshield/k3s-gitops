@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-consume-smb
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: pv-paperless-smb-printerscans # explicit 1:1 bind, not
+                                             # capacity/accessMode matching
+  resources:
+    requests:
+      storage: 20Gi

@@ -1,0 +1,36 @@
+# No PVC on purpose: Redis here is only Paperless's Celery broker/cache, not
+# a source of truth. Losing in-flight task state on a pod restart just means
+# affected tasks get re-triggered on the next consumer poll - cheaper than
+# operating a second stateful thing for this blast radius. Revisit with a
+# PVC (or move to a chart-managed HA Redis) if that stops being true.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-redis
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paperless-redis
+  template:
+    metadata:
+      labels:
+        app: paperless-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999

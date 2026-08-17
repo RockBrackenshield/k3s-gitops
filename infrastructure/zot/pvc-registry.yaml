@@ -1,0 +1,22 @@
+# k3s-gitops/infrastructure/zot/pvc-registry.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zot-registry
+  namespace: zot
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false
+  labels:
+    app: zot
+    app.kubernetes.io/name: zot-registry
+spec:
+  # NOTE: verify "longhorn-usb" exists as a StorageClass on the live cluster
+  # before applying — it isn't one of the documented default classes. If it
+  # doesn't exist, fall back to "longhorn".
+  storageClassName: longhorn-usb
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 15Gi

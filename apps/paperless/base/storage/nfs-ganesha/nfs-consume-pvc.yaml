@@ -1,0 +1,17 @@
+# Dynamically provisioned against the StorageClass produced by the
+# paperless-nfs-ganesha Helm release (bootstrap/apps/paperless-nfs-ganesha.yaml).
+# That Application must sync before this PVC can bind.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-consume-nfs
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-ganesha-paperless
+  resources:
+    requests:
+      storage: 20Gi

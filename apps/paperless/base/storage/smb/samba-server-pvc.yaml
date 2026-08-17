@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-samba-backing
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: Prune=false # data-bearing
+spec:
+  accessModes:
+    - ReadWriteOnce # only the samba pod attaches directly
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 20Gi

@@ -1,0 +1,35 @@
+# Dedicated in-namespace Postgres, via the CloudNativePG operator you
+# already run cluster-wide (same operator, per-app Cluster CR - not a
+# separate database engine deployment). See README "Enterprise call-outs"
+# for why this beats a raw postgres: Deployment.
+#
+# WAL archiving to B2 deliberately NOT wired up here. The exact
+# barmanObjectStore secretRef schema you're using for Authentik's cluster
+# isn't in stored context, and guessing at key names would produce a
+# Cluster that looks configured but silently fails to archive. Copy the
+# `backup:` stanza from Authentik's Cluster CR into this file if you want
+# WAL archiving parity now.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: paperless-postgres
+  namespace: paperless
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: Prune=false # data-bearing
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  storage:
+    size: 10Gi
+    storageClass: longhorn
+  bootstrap:
+    initdb:
+      database: paperless
+      owner: paperless
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi

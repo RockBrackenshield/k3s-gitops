@@ -1,0 +1,35 @@
+# Cluster-wide SMB CSI driver. Installed once; any future app that needs to
+# consume an external/legacy SMB share (not just Paperless) can reuse it.
+# Lives in its own namespace rather than kube-system — see README "Enterprise
+# call-outs" for the reasoning.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: csi-driver-smb
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2" # operators wave
+spec:
+  project: default
+  source:
+    repoURL: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-smb/master/charts
+    chart: csi-driver-smb
+    # Pin explicitly so Renovate's helm-chart manager has something to bump.
+    # Confirm current latest with `helm search repo csi-driver-smb --versions`
+    # before first apply.
+    targetRevision: 1.20.3
+    helm:
+      values: |
+        # Defaults are fine for a single-purpose client driver. controller
+        # runs with hostNetwork: true out of the box (required for
+        # CreateVolume/mount operations) - no override needed for that.
+        externalSnapshotter: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: csi-driver-smb
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
