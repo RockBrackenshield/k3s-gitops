@@ -36,7 +36,9 @@ spec:
         service:
           type: LoadBalancer
           annotations:
-            lbipam.cilium.io/ips: "192.168.7.207"
+            metallb.universe.tf/loadBalancerIPs: "192.168.7.207"
+            metallb.universe.tf/address-pool: "infrastructure-pool"
+            #lbipam.cilium.io/ips: "192.168.7.207"
         # Field names above mirror the well-known layout of this chart's
         # values.yaml; cross-check against your existing media release's
         # values before applying, since exact keys can shift between
