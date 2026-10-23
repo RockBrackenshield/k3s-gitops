@@ -26,6 +26,6 @@ spec:
   secretTemplate:
     annotations:
       reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube,paperless,home-assistant,external-services,kube-system,zot"
+      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube,paperless,home-assistant,external-services,kube-system,zot"
       reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
-      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube,paperless,home-assistant,external-services,kube-system,zot"
+      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube,paperless,home-assistant,external-services,kube-system,zot"

@@ -18,7 +18,7 @@
 #
 # RESTIC_REPOSITORY uses the bucket root — no sub-path suffix.
 # VolSync tags every snapshot with the source PVC name and namespace,
-# so AdGuard, Jellyfin, and any future app coexist in one repository
+# so Jellyfin, authentik, and any future app coexist in one repository
 # without conflict. Reflector mirrors this secret to every namespace
 # listed in reflection-auto-namespaces.
 #
@@ -46,7 +46,7 @@ spec:
       namespace: volsync-system
       annotations:
         reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-        reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,jellyfin,monitoring,authentik"
+        reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "jellyfin,monitoring,authentik"
         reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
-        reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,jellyfin,monitoring,authentik"
+        reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "jellyfin,monitoring,authentik"
     type: Opaque
