@@ -5,9 +5,6 @@ resources:
   - namespace.yaml
   - pvc.yaml
   - deployment.yaml
-  - service-dns.yaml
   - service-http.yaml
   - ingressroute.yaml
-  - ingressroute-tcp.yaml
-  - ingressroute-udp.yaml
   - replication-source.yaml

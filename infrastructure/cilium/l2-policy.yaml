@@ -14,7 +14,7 @@ spec:
   loadBalancerIPs: true
 ---
 # Node-scoped: externalTrafficPolicy Local services whose pods are pinned to
-# k3s-master (AdGuard DNS .202, Traefik .205), so the announcing node is the one
+# k3s-master (CoreDNS lan-dns .202, Traefik .205), so the announcing node is the one
 # with the endpoint. UNTESTED workaround - see the PR risks.
 apiVersion: cilium.io/v2alpha1
 kind: CiliumL2AnnouncementPolicy
