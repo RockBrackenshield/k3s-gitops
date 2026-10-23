@@ -1,0 +1,126 @@
+---
+name: validate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KUSTOMIZE_VERSION: v5.4.3
+  # sha256 of kustomize_v5.4.3_linux_amd64.tar.gz from the release's checksums.txt
+  KUSTOMIZE_SHA256: 3669470b454d865c8184d6bce78df05e977c9aea31c30df3c669317d43bcc7a7
+  KUBECONFORM_VERSION: v0.8.0
+  # sha256 of kubeconform-linux-amd64.tar.gz from the release's CHECKSUMS
+  KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
+  # Kubernetes JSON schemas pinned to a commit of yannh/kubernetes-json-schema
+  # (instead of the moving default branch). K8s version from
+  # ansible/inventory/group_vars/all.yaml (k3s_version: v1.29.0+k3s1).
+  K8S_SCHEMA_SHA: b2ba4defe30ed5a0104987433896f1fd32807304
+  K8S_VERSION: 1.29.0
+
+jobs:
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install yamllint 1.38.0 (hash-pinned)
+        run: |
+          cat > "$RUNNER_TEMP/requirements.txt" <<'REQ'
+          yamllint==1.38.0 \
+              --hash=sha256:fc394a5b3be980a4062607b8fdddc0843f4fa394152b6da21722f5d59013c220 \
+              --hash=sha256:09e5f29531daab93366bb061e76019d5e91691ef0a40328f04c927387d1d364d
+          pathspec==1.1.1 \
+              --hash=sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189 \
+              --hash=sha256:17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a
+          pyyaml==6.0.3 \
+              --hash=sha256:9c7708761fccb9397fe64bbc0395abcae8c4bf7b0eac081e12b809bf47700d0b \
+              --hash=sha256:b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d \
+              --hash=sha256:ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc \
+              --hash=sha256:0f29edc409a6392443abf94b9cf89ce99889a1dd5376d94316ae5145dfedd5d6 \
+              --hash=sha256:c458b6d084f9b935061bc36216e8a69a7e293a2f1e68bf956dcd9e6cbcd143f5 \
+              --hash=sha256:d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f
+          REQ
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --disable-pip-version-check --no-deps --require-hashes -r "$RUNNER_TEMP/requirements.txt"
+          "$RUNNER_TEMP/venv/bin/yamllint" --version
+
+      - name: yamllint
+        run: '"$RUNNER_TEMP/venv/bin/yamllint" -c .yamllint -f github .'
+
+  kustomize:
+    name: kustomize build + kubeconform
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install kustomize and kubeconform (sha256-verified)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP"
+          curl -fsSLo kustomize.tar.gz \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          echo "${KUSTOMIZE_SHA256}  kustomize.tar.gz" | sha256sum -c -
+          curl -fsSLo kubeconform.tar.gz \
+            "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  kubeconform.tar.gz" | sha256sum -c -
+          tar -xzf kustomize.tar.gz -C bin kustomize
+          tar -xzf kubeconform.tar.gz -C bin kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Versions
+        run: |
+          kustomize version
+          kubeconform -v
+
+      - name: kustomize build every kustomization
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/rendered"
+          fail=0; n=0
+          while IFS= read -r dir; do
+            n=$((n + 1))
+            out="$RUNNER_TEMP/rendered/$(echo "${dir#./}" | tr '/' '_').yaml"
+            if kustomize build "$dir" > "$out"; then
+              echo "ok   $dir"
+            else
+              echo "::error::kustomize build failed: $dir"
+              fail=1
+            fi
+          done < <(find . -path ./.git -prune -o -type f \
+                     \( -name kustomization.yaml -o -name kustomization.yml -o -name Kustomization \) \
+                     -printf '%h\n' | sort -u)
+          echo "built $n kustomizations"
+          [ "$n" -gt 0 ] || { echo "::error::no kustomizations found"; exit 1; }
+          exit "$fail"
+
+      - name: kubeconform (strict, CRDs without schemas skipped)
+        run: |
+          set -uo pipefail
+          fail=0
+          for f in "$RUNNER_TEMP"/rendered/*.yaml; do
+            echo "== $(basename "$f")"
+            kubeconform -strict -ignore-missing-schemas -summary \
+              -kubernetes-version "${K8S_VERSION}" \
+              -schema-location "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/${K8S_SCHEMA_SHA}/{{.NormalizedKubernetesVersion}}-standalone{{.StrictSuffix}}/{{.ResourceKind}}{{.KindSuffix}}.json" \
+              "$f" || fail=1
+          done
+          exit "$fail"
