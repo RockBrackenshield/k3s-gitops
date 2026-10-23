@@ -3,11 +3,12 @@
 # Values for the traefik/traefik chart 42.1.3 (Traefik v3.7.16), deployed by
 # bootstrap/apps/traefik.yaml into the traefik namespace (PSA restricted).
 # Replaces the k3s-bundled Traefik + HelmChartConfig.
+# image.tag is tag@digest: the digest is what the kubelet verifies; the tag
+# feeds the chart's version checks. Renovate updates both
+# (infrastructure/renovate/configmap.yaml) - keep repository and tag adjacent.
 image:
   registry: docker.io
   repository: traefik
-  # tag@digest: the digest is what the kubelet verifies; the tag feeds the
-  # chart's version checks. Renovate updates both.
   tag: v3.7.16@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
 
 deployment:
