@@ -9,12 +9,12 @@ metadata:
   namespace: nfs-ganesha
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    lbipam.cilium.io/ips: "192.168.7.203"
   labels:
     app: nfs-ganesha
     app.kubernetes.io/name: nfs-ganesha
 spec:
   type: LoadBalancer
-  loadBalancerIP: 192.168.7.203
   selector:
     app: nfs-ganesha
     release: nfs-ganesha

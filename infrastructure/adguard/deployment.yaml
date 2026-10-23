@@ -23,6 +23,10 @@ spec:
         app: adguard
         app.kubernetes.io/name: adguard-home
     spec:
+      # Pinned: adguard-dns uses externalTrafficPolicy Local and is announced
+      # only from k3s-master (l2.hermnet.org/pin). Keep these in sync.
+      nodeSelector:
+        kubernetes.io/hostname: k3s-master
       securityContext:
         fsGroup: 1000
       containers:
