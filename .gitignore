@@ -1,5 +1,3 @@
-ansible/roles/argocd_bootstrap/files/sealed-secrets-master-key.yaml
-
 # --- Talos / cluster access artifacts (never commit) ---
 # Rendered machine configs contain the cluster secrets in plaintext.
 talos/_out/
