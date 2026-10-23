@@ -1,5 +1,7 @@
 # k3s-gitops/infrastructure/traefik/kustomization.yaml
+# values.yaml is NOT a resource: it is the chart's values file
+# (bootstrap/apps/traefik.yaml, $values ref).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - helmchartconfig.yaml
+  - namespace.yaml

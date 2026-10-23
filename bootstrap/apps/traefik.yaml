@@ -1,5 +1,12 @@
 # k3s-gitops/bootstrap/apps/traefik.yaml
 # ---
+# Traefik v3.7.16 (chart 42.1.3) as an Argo Helm app in the traefik namespace.
+# Sources:
+#   1. the chart, with skipCrds (CRDs come from source 4, so only the
+#      traefik.io CRDs are installed - no hub.traefik.io, never Gateway API)
+#   2. this repo as the $values ref
+#   3. infrastructure/traefik (Namespace with PSA restricted labels)
+#   4. traefik.io CRDs from the chart's git tag (same version as source 1)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,39 +18,32 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/RockBrackenshield/k3s-gitops
-    targetRevision: HEAD
-    path: infrastructure/traefik
+  sources:
+    - repoURL: https://traefik.github.io/charts
+      chart: traefik
+      targetRevision: 42.1.3
+      helm:
+        releaseName: traefik
+        skipCrds: true
+        valueFiles:
+          - $values/infrastructure/traefik/values.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      ref: values
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      path: infrastructure/traefik
+    - repoURL: https://github.com/traefik/traefik-helm-chart
+      targetRevision: v42.1.3
+      path: traefik/crds
+      directory:
+        include: "traefik.io_*.yaml"
   destination:
     server: https://kubernetes.default.svc
-    namespace: kube-system
+    namespace: traefik
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
-  # Ignore K3s-managed Traefik resources to prevent controller conflicts.
-  # ArgoCD only manages the HelmChartConfig; K3s owns everything else.
-  ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      name: traefik
-      namespace: kube-system
-      jsonPointers:
-        - /spec/template/spec
-        - /spec/template/metadata/annotations
-    - group: helm.cattle.io
-      kind: HelmChart
-      name: traefik
-      namespace: kube-system
-      jsonPointers:
-        - /spec
-    - group: ""
-      kind: Service
-      name: traefik
-      namespace: kube-system
-      jsonPointers:
-        - /spec/clusterIP
-        - /spec/clusterIPs
+      - ServerSideApply=true   # CRDs exceed the client-side apply annotation limit
