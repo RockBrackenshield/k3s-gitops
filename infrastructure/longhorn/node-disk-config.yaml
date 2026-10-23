@@ -6,10 +6,13 @@
 #
 # Longhorn auto-creates the Node resource when k3s-master registers. Because
 # createDefaultDiskLabeledNodes: true and k3s-master has the label
-# node.longhorn.io/create-default-disk=true, Longhorn auto-creates one disk at
-# /mnt/longhorn-usb. This manifest reconciles the tags onto the node and disk
-# configuration. kubectl apply performs a strategic merge, so the auto-created
-# disk entry is preserved alongside the tags we set here on the node spec.
+# node.longhorn.io/create-default-disk=true (Talos nodeLabels in
+# talos/nodes/k3s-master.yaml), Longhorn auto-creates one disk at
+# /var/mnt/longhorn (the Talos UserVolumeConfig "longhorn"). This manifest
+# reconciles the tags onto the node and disk configuration.
+# VERIFY AT FIRST BOOT: the Node must end up with exactly one disk at
+# /var/mnt/longhorn (kubectl -n longhorn-system get nodes.longhorn.io
+# k3s-master -o yaml).
 #
 # Apply only after Longhorn is fully running (sync-wave 1).
 apiVersion: longhorn.io/v1beta2
@@ -28,7 +31,7 @@ spec:
   disks:
     usb-longhorn-disk:
       diskType: filesystem
-      path: /mnt/longhorn-usb
+      path: /var/mnt/longhorn
       allowScheduling: true
       evictionRequested: false
       storageReserved: 0
