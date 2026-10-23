@@ -1,0 +1,15 @@
+# k3s-gitops/infrastructure/coredns/namespace.yaml
+# ---
+# LAN DNS resolver (CoreDNS, release lan-dns). values.yaml runs it as uid/gid
+# 65532, drop ALL (no NET_BIND_SERVICE: container port 1053), no privilege
+# escalation, read-only root fs, RuntimeDefault seccomp -> restricted-compatible.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: coredns
+  labels:
+    app.kubernetes.io/name: coredns
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

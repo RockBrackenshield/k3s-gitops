@@ -1,0 +1,123 @@
+# k3s-gitops/infrastructure/coredns/values.yaml
+# ---
+# Values for chart coredns/helm 1.49.0 (bootstrap/apps/coredns.yaml, $values
+# ref), release lan-dns, namespace coredns. CoreDNS 1.15.0 as the LAN
+# resolver on 192.168.7.202 (replaces AdGuard Home).
+#   - hermnet.org: answered locally (template), never forwarded.
+#   - everything else: NextDNS over DoT ONLY (IPs + tls_servername from the
+#     nextdns-profile SealedSecret). No plaintext / DoH / resolv.conf fallback.
+#   - NOT a cluster DNS: isClusterService/rbac/serviceAccount off, no SA token.
+# NEVER add the kubernetes, loop or reload plugins, a DoH upstream or a
+# plaintext forward. Single replica pinned to k3s-master by design.
+image:
+  repository: coredns/coredns
+  # tag@digest: chart builds "<repository>:<tag>"; appVersion is 1.14.7, so tag must be explicit.
+  tag: "1.15.0@sha256:0a9d8c8ddf34347eb59aad9a8784f0710de88d6d112726d11d271f9bc6daca26"
+  pullPolicy: IfNotPresent
+replicaCount: 1
+isClusterService: false
+rbac:
+  create: false
+serviceAccount:
+  create: false
+automountServiceAccountToken: false
+serviceType: LoadBalancer
+service:
+  name: lan-dns
+  externalTrafficPolicy: Local
+  annotations:
+    lbipam.cilium.io/ips: "192.168.7.202"
+customLabels:
+  l2.hermnet.org/pin: k3s-master
+nodeSelector:
+  kubernetes.io/hostname: k3s-master
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+    add: []
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+resources:
+  requests: {cpu: 25m, memory: 32Mi}
+  limits: {memory: 128Mi}
+env:
+  - name: NEXTDNS_PROFILE
+    valueFrom:
+      secretKeyRef:
+        name: nextdns-profile
+        key: profile-id
+servers:
+  - zones:
+      - zone: hermnet.org.
+        use_tcp: true
+    port: 1053
+    servicePort: 53
+    plugins:
+      - name: errors
+      - name: acl
+        configBlock: |-
+          # 192.168.1.0/24 = Rock's main home network; 192.168.7.0/24 = cluster LAN.
+          # Both are inside 192.168.0.0/16 (listed only for clarity).
+          allow net 192.168.1.0/24 192.168.7.0/24 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 127.0.0.1
+          # Tailscale CGNAT range (tailnet clients whose source is not SNATed)
+          allow net 100.64.0.0/10
+          block
+      # >>> SINGLE MARKED VALUE: hermnet.org + *.hermnet.org A -> 192.168.7.205 <<<
+      # = Traefik LB IP (infrastructure/traefik/values.yaml, service.annotations
+      # lbipam.cilium.io/ips). Change both places together.
+      - name: template
+        parameters: IN A hermnet.org.
+        configBlock: |-
+          match ^(?:[^.]+\.)*hermnet\.org\.$
+          answer "{{ .Name }} 60 IN A 192.168.7.205"
+          fallthrough
+      # every other name/type in hermnet.org: NOERROR, empty, never forwarded
+      - name: template
+        parameters: ANY ANY hermnet.org.
+        configBlock: |-
+          rcode NOERROR
+      - name: cache
+        parameters: "60"
+      - name: prometheus
+        parameters: 127.0.0.1:9153
+  - zones:
+      - zone: .
+        use_tcp: true
+    port: 1053
+    servicePort: 53
+    plugins:
+      - name: errors
+      - name: health
+        configBlock: |-
+          lameduck 5s
+      - name: ready
+      - name: acl
+        configBlock: |-
+          # 192.168.1.0/24 = Rock's main home network; 192.168.7.0/24 = cluster LAN.
+          # Both are inside 192.168.0.0/16 (listed only for clarity).
+          allow net 192.168.1.0/24 192.168.7.0/24 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 127.0.0.1
+          # Tailscale CGNAT range (tailnet clients whose source is not SNATed)
+          allow net 100.64.0.0/10
+          block
+      - name: forward
+        parameters: . tls://45.90.28.0 tls://45.90.30.0
+        configBlock: |-
+          tls_servername Homenet-{$NEXTDNS_PROFILE}.dns.nextdns.io
+          health_check 10s
+          max_concurrent 1000
+      - name: cache
+        parameters: "300"
+      - name: prometheus
+        parameters: 127.0.0.1:9153

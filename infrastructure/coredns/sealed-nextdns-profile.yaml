@@ -1,0 +1,42 @@
+# k3s-gitops/infrastructure/coredns/sealed-nextdns-profile.yaml
+#
+# !!! SKELETON - BLOCKING BEFORE MERGE: Rock replaces this whole file with real
+# kubeseal output. Until then the coredns pod cannot start (the secretKeyRef
+# is not optional) and the controller rejects the placeholder. !!!
+#
+# Secret coredns/nextdns-profile, key profile-id = the NextDNS profile ID ONLY
+# (no newline; it becomes part of the DoT SNI
+# Homenet-<id>.dns.nextdns.io - a stray newline makes every upstream fail
+# closed with SERVFAIL). Never commit or paste the plaintext ID.
+# -------------------------------------------------------------------
+# GENERATION COMMAND (strict scope; the file holding the ID stays outside the repo):
+#
+#   tr -d '\r\n' < /path/outside/repo/nextdns-profile-id \
+#   | kubectl create secret generic nextdns-profile \
+#       --namespace coredns \
+#       --from-file=profile-id=/dev/stdin \
+#       --dry-run=client -o yaml \
+#   | kubeseal \
+#       --controller-name sealed-secrets-controller \
+#       --controller-namespace sealed-secrets \
+#       --format yaml \
+#   > infrastructure/coredns/sealed-nextdns-profile.yaml
+#
+# (Offline alternative: replace the two --controller-* flags with
+#  --cert /tmp/sealed-secrets-pub.pem, fetched with
+#  kubeseal --fetch-cert --controller-name sealed-secrets-controller \
+#    --controller-namespace sealed-secrets > /tmp/sealed-secrets-pub.pem)
+# -------------------------------------------------------------------
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: nextdns-profile
+  namespace: coredns
+spec:
+  encryptedData:
+    profile-id: REPLACE_WITH_KUBESEAL_OUTPUT
+  template:
+    metadata:
+      name: nextdns-profile
+      namespace: coredns
+    type: Opaque

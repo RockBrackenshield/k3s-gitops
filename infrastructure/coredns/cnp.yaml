@@ -1,0 +1,47 @@
+# k3s-gitops/infrastructure/coredns/cnp.yaml
+# ---
+# Default-deny for the lan-dns pod. Egress: ONLY DoT (TCP 853) to the two
+# NextDNS anycast IPs - no DNS, no 443, nothing else. Ingress: DNS on the
+# POD port 1053 (after the Service 53->1053 DNAT) from LAN / Tailscale /
+# in-cluster sources; kubelet probes 8080 (/health) and 8181 (/ready) from
+# the host only. Metrics (9153) bind 127.0.0.1 and get no rule.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: lan-dns
+  namespace: coredns
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: coredns
+      app.kubernetes.io/instance: lan-dns
+  ingress:
+    - fromCIDR:
+        - 192.168.1.0/24    # Rock's main home network (inside 192.168.0.0/16; explicit for clarity)
+        - 192.168.0.0/16
+        - 172.16.0.0/12
+        - 10.0.0.0/8
+        - 100.64.0.0/10     # Tailscale CGNAT range
+      toPorts:
+        - ports:
+            - {port: "1053", protocol: UDP}
+            - {port: "1053", protocol: TCP}
+    - fromEntities: [cluster]
+      toPorts:
+        - ports:
+            - {port: "1053", protocol: UDP}
+            - {port: "1053", protocol: TCP}
+    - fromEntities: [host]
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
+            - {port: "8181", protocol: TCP}
+  egress:
+    - toCIDR:
+        - 45.90.28.0/32
+        - 45.90.30.0/32
+      toPorts:
+        - ports:
+            - {port: "853", protocol: TCP}
