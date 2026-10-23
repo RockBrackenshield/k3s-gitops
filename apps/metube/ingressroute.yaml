@@ -19,4 +19,4 @@ spec:
         - name: metube
           port: 8081
   tls:
-    secretName: hermnet-org-wildcard-tls   # ⚠️ verify secret name; see post-checklist re: Reflector
+    secretName: wildcard-hermnet-org-tls   # reflected from cert-manager

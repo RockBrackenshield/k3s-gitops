@@ -16,4 +16,4 @@ spec:
           scheme: https                # Tell Traefik the upstream speaks HTTPS
           serversTransport: skip-tls-verify
   tls:
-    secretName: hermnet-wildcard-tls  # Your wildcard cert — see note below
+    secretName: wildcard-hermnet-org-tls  # reflected from cert-manager

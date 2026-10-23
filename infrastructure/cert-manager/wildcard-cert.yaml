@@ -2,7 +2,9 @@
 # ---
 # Wildcard certificate for *.hermnet.org and hermnet.org.
 # The secretTemplate annotations instruct Reflector to automatically mirror
-# the resulting TLS secret to all listed namespaces.
+# the resulting TLS secret to all listed namespaces. Every IngressRoute/Ingress
+# must use secretName wildcard-hermnet-org-tls and its namespace must be in
+# BOTH lists (kube-system: default TLSStore + Hubble UI).
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -24,6 +26,6 @@ spec:
   secretTemplate:
     annotations:
       reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
-      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube"
+      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube,paperless,home-assistant,external-services,kube-system,zot"
       reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
-      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube"
+      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "adguard,longhorn-system,argocd,volsync-system,etcd-backup,jellyfin,authentik,metube,paperless,home-assistant,external-services,kube-system,zot"
