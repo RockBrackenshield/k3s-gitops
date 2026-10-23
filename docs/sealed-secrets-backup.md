@@ -160,7 +160,10 @@ Run this test at least once after every key rotation or cluster rebuild.
 kubectl get secret \
   -n sealed-secrets \
   -l sealedsecrets.bitnami.com/sealed-secrets-key=active \
-  -o yaml > ansible/roles/argocd_bootstrap/files/sealed-secrets-master-key.yaml
+  -o yaml > ~/secure/sealed-secrets-master-key.yaml   # OUTSIDE the repo
+
+# Restore it into a rebuilt cluster (before Argo CD syncs sealed-secrets)
+make restore-sealed-secrets-key KEY=~/secure/sealed-secrets-master-key.yaml
 
 # Re-seal any secret after a cluster rebuild
 kubectl create secret generic <name> \

@@ -1,7 +1,7 @@
 # k3s-gitops/infrastructure/adguard/ingressroute-tcp.yaml
 # ---
 # Routes DNS over TCP through Traefik's dns-tcp entrypoint (port 53/TCP on
-# 10.10.10.20) to the AdGuard DNS service. Clients that go through Traefik
+# 192.168.7.205) to the AdGuard DNS service. Clients that go through Traefik
 # for DNS TCP will be routed here. HostSNI(*) is required for raw TCP.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRouteTCP

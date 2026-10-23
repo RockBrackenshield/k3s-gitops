@@ -1,319 +1,228 @@
 <!-- k3s-gitops/docs/runbook-restore.md -->
-# Cluster Restore Runbook
+# Cluster Restore Runbook (Talos)
 
-This runbook covers full disaster recovery for the hermnet.org K3s homelab cluster.
-Follow sections in order. Do not skip steps.
+Full rebuild of the hermnet cluster: three Raspberry Pis running Talos Linux,
+Cilium as CNI + LoadBalancer, Argo CD for everything else. Follow the phases
+in order. Node-level commands live in `talos/Makefile`
+(see [`talos/README.md`](../talos/README.md)); cluster bootstrap lives in the
+root `Makefile`.
+
+| Node | IP | Board | Role |
+|------|----|-------|------|
+| k3s-master | 192.168.7.15 | Pi 5 | control plane + workloads, USB disk (Longhorn) |
+| k3s-worker-1 | 192.168.7.11 | Pi 4 | worker |
+| k3s-worker-2 | 192.168.7.13 | Pi 4 | worker |
 
 ---
 
 ## Prerequisites
 
-Before starting, confirm you have access to:
-
-- [ ] SSH private key (`~/.ssh/id_ed25519`) for the `ubuntu` user on all nodes
-- [ ] The backed-up `sealed-secrets-master-key.yaml` (from your offline storage — see `sealed-secrets-backup.md`)
-- [ ] Backblaze B2 credentials (Key ID and Application Key) for `hermnet-restic-private`
-- [ ] Restic repository passwords for each component (adguard, jellyfin, etcd)
-- [ ] Cloudflare API token for cert-manager DNS01 challenge
-- [ ] Physical access to the USB drive (UUID `PLACEHOLDER-UUID`) for Longhorn storage
-- [ ] This repository cloned locally: `git clone https://github.com/RockBrackenshield/k3s-gitops`
-
----
-
-## Phase 1 — Node Preparation
-
-### 1.1 Provision fresh Ubuntu 26.04 nodes
-
-Install Ubuntu 26.04 LTS on all three nodes. Ensure:
-- SSH is enabled with your public key in `~/.ssh/authorized_keys` for the `ubuntu` user
-- Nodes are reachable at their expected IPs:
-  - `k3s-master`: 192.168.7.15
-  - `k3s-worker-1`: 192.168.7.11
-  - `k3s-worker-2`: 192.168.7.13
-- The USB drive is physically attached to `k3s-master` and formatted as ext4
-
-### 1.2 Find the USB drive UUID
-
-SSH into `k3s-master` and run:
-
-```bash
-blkid /dev/sdX   # replace sdX with your drive
-```
-
-Copy the UUID value. Update the placeholder in:
-- `ansible/roles/usb_storage/tasks/main.yaml` (the `fstab` lineinfile line)
-
-### 1.3 Place the Sealed Secrets master key
-
-Copy your backed-up key file into the Ansible role files directory:
-
-```bash
-cp /path/to/your/backup/sealed-secrets-master-key.yaml \
-  ansible/roles/argocd_bootstrap/files/sealed-secrets-master-key.yaml
-```
-
-This file is gitignored and will be deleted from the remote host immediately after use.
+- [ ] This repository cloned locally
+- [ ] Tools: `talosctl` and `helm` at the versions in `talos/versions.env`,
+      `sops`, `age`, `kubectl`, `kubeseal`
+- [ ] The age private key for SOPS (`~/.config/sops/age/keys.txt`), so
+      `talos/secrets.sops.yaml` and `talos/nodes/*.tailscale.sops.yaml` decrypt
+- [ ] The backed-up `sealed-secrets-master-key.yaml`, **outside the repo**
+      (see `sealed-secrets-backup.md`). Without it every SealedSecret must be resealed.
+- [ ] Backblaze B2 credentials and restic passwords (VolSync, CNPG/barman)
+- [ ] A recent etcd snapshot if you are recovering the existing cluster state
+      (`make -C talos etcd-backup` output)
 
 ---
 
-## Phase 2 — Run the Ansible Restore Playbook
+## Phase 0 — Data on the USB disk
 
-From the repository root on your local machine:
+The Talos `UserVolumeConfig longhorn` only locates a Talos-created partition
+or provisions a new one; it cannot adopt an existing filesystem.
 
-```bash
-cd k3s-gitops/ansible
-ansible-playbook -i inventory/hosts.yaml restore.yaml
-```
-
-This playbook will:
-1. Install common packages, disable systemd-resolved, configure resolv.conf
-2. Install K3s on `k3s-master` with `--disable servicelb`
-3. Install K3s agents on `k3s-worker-1` and `k3s-worker-2`
-4. Mount the USB drive via fstab on `k3s-master`
-5. Install ArgoCD from the stable upstream manifest
-6. Patch ArgoCD server into insecure mode (Traefik terminates TLS)
-7. Apply the Sealed Secrets master key to the cluster
-8. Apply the root ArgoCD Application
-
-After the playbook completes, a `kubeconfig.yaml` will be written to the repository root.
-
-Set it as your active kubeconfig:
-
-```bash
-export KUBECONFIG=$(pwd)/kubeconfig.yaml
-kubectl get nodes
-```
-
-All three nodes should eventually reach `Ready` status.
+- **Migrating from k3s:** image (`dd`/`ddrescue`) or copy the old disk off and
+  verify the copy **before** reflashing. Longhorn re-adopting old replicas is
+  unverified; plan to restore from backups.
+- **Rebuilding Talos with the same disk:** the existing `u-longhorn` partition
+  is found again by serial; nothing is wiped.
 
 ---
 
-## Phase 3 — Monitor ArgoCD Infrastructure Sync
-
-### 3.1 Access the ArgoCD UI (temporary, before TLS is ready)
-
-Until the wildcard cert is issued, use port-forward:
+## Phase 1 — Flash and configure the nodes
 
 ```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:80
+make -C talos schematic-check images   # flash the printed metal-arm64.raw.xz images
 ```
 
-Open `http://localhost:8080` in a browser. Retrieve the initial admin password:
+Boot each Pi from its SD card (USB disk unplugged on a first install). The
+nodes come up in maintenance mode. Check on a trusted LAN:
 
 ```bash
-kubectl get secret argocd-initial-admin-secret -n argocd \
-  -o jsonpath='{.data.password}' | base64 -d
+talosctl get disks --insecure -n 192.168.7.15   # mmcblk0 = SD card; note the USB serial
+talosctl get links --insecure -n 192.168.7.15   # NIC is end0
 ```
 
-Login with username `admin` and the printed password.
+The USB serial goes into `talos/nodes/k3s-master.yaml` (replace
+`REPLACE_WITH_USB_SERIAL`; `lsblk -o NAME,SERIAL` on another machine shows the
+same value). `make apply` and `make upgrade` refuse to run while the
+placeholder is present.
 
-### 3.2 Watch sync wave progression
-
-ArgoCD will process applications in sync-wave order. Monitor progress:
+Then either step by step (see `talos/README.md` "Day 0"), or in one go:
 
 ```bash
-kubectl get applications -n argocd -w
+make restore KEY=/path/outside/repo/sealed-secrets-master-key.yaml
+# = talos-up (gen, validate, apply all nodes, bootstrap, kubeconfig, cilium-bootstrap)
+#   + bootstrap-argocd + restore-sealed-secrets-key + bootstrap-root
+export KUBECONFIG=$PWD/talos/_out/kubeconfig
+kubectl get nodes        # all three Ready once Cilium runs
 ```
 
-Expected sync order and timing:
+To recover the control plane from an etcd snapshot instead of a fresh
+cluster: reflash, apply, then
+`talosctl -n 192.168.7.15 bootstrap --recover-from=./etcd-<date>.snapshot`,
+then `make -C talos cilium-bootstrap` if Cilium is not in that state.
 
-| Wave | Application     | Approximate time |
-|------|-----------------|------------------|
-| -2   | metallb         | 2–5 minutes      |
-| -2   | sealed-secrets  | 1–2 minutes      |
-| -1   | traefik         | 1–2 minutes      |
-| -1   | cert-manager    | 2–3 minutes      |
-| -1   | reflector       | 1 minute         |
-| -1   | longhorn        | 5–10 minutes     |
-| 0    | volsync         | 2 minutes        |
-| 0    | adguard         | 2 minutes        |
-| 0    | etcd-backup     | 1 minute         |
-| 1    | jellyfin        | 2 minutes        |
+With a **new** Sealed Secrets key use `make day0` instead, then reseal every
+SealedSecret and back the new key up.
 
-### 3.3 Verify MetalLB IP assignments
+---
 
-After metallb syncs, verify the two reserved IPs are assigned:
+## Phase 2 — Argo CD sync
+
+```bash
+kubectl -n argocd get applications -w
+```
+
+| Wave | Applications |
+|------|--------------|
+| -4 | gateway-api-crds |
+| -3 | cilium (adopts the release from `cilium-bootstrap`; LB pool + L2 policies) |
+| -2 | sealed-secrets |
+| -1 | traefik, cert-manager, reflector, longhorn, snapshot-controller |
+| 0  | infrastructure, volsync, adguard, authentik, argocd-ingress, external-snapshotter-crds |
+| 1+ | renovate, jellyfin, csi-driver-smb, metube, paperless-nfs-ganesha, paperless, ... |
+
+Argo CD UI before TLS is ready:
+
+```bash
+kubectl -n argocd port-forward svc/argocd-server 8080:80
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
+
+### LoadBalancer IPs (Cilium LB IPAM + L2 announcements)
+
+Pool `infrastructure-pool` is 192.168.7.200-220; every Service pins its IP
+with `lbipam.cilium.io/ips`.
+
+| Service | IP | Announced by |
+|---------|----|--------------|
+| adguard/adguard-dns | 192.168.7.202 | k3s-master only (`externalTrafficPolicy: Local`) |
+| traefik/traefik | 192.168.7.205 | k3s-master only (`externalTrafficPolicy: Local`) |
+| nfs-ganesha-lan | 192.168.7.203 | any node |
+| samba | 192.168.7.206 | any node |
+| paperless-nfs-ganesha | 192.168.7.207 | any node |
 
 ```bash
 kubectl get svc -A | grep LoadBalancer
-# Expected:
-# adguard   adguard-dns   LoadBalancer   ...   10.10.10.10   53:...
-# kube-system traefik     LoadBalancer   ...   10.10.10.20   80:...,443:...
+kubectl get ciliumloadbalancerippool,ciliuml2announcementpolicy
+kubectl -n kube-system get leases | grep cilium-l2announce   # holder per Service
 ```
 
-### 3.4 Monitor the wildcard certificate
-
-The cert-manager ClusterIssuer will issue the wildcard cert via Cloudflare DNS01.
-This typically takes 1–3 minutes but can take up to 10 minutes depending on DNS propagation.
+### Certificates
 
 ```bash
-kubectl get certificate -n cert-manager -w
-# Wait for READY=True on wildcard-hermnet-org
+kubectl -n cert-manager get certificate -w   # wildcard-hermnet-org READY=True
+kubectl -n kube-system get secret wildcard-hermnet-org-tls   # Reflector copy used by the default TLSStore
 ```
-
-Once `READY=True`, Reflector will automatically copy the TLS secret to all configured namespaces. Verify:
-
-```bash
-kubectl get secret wildcard-hermnet-org-tls -n adguard
-kubectl get secret wildcard-hermnet-org-tls -n longhorn-system
-kubectl get secret wildcard-hermnet-org-tls -n argocd
-```
-
-### 3.5 Apply the ArgoCD IngressRoute
-
-Once the wildcard cert is reflected to the `argocd` namespace, apply the ArgoCD ingress:
-
-```bash
-kubectl apply -f bootstrap/argocd-ingress.yaml
-```
-
-ArgoCD will now be accessible at `https://argocd.hermnet.org`.
 
 ---
 
-## Phase 4 — Update Router DNS
+## Phase 3 — Storage and data
 
-Point your router's DNS server to the AdGuard Home instance:
+1. Plug in / confirm the USB disk, then
+   `talosctl -n 192.168.7.15 get volumestatus u-longhorn` and
+   `talosctl -n 192.168.7.15 get mountstatus` (mounted at `/var/mnt/longhorn`).
+   If the disk still holds the old k3s filesystem, wipe it only after Phase 0:
+   `talosctl -n 192.168.7.15 wipe disk <dev>` (check `--help` first).
+2. Longhorn: the k3s-master Longhorn node must show exactly one schedulable
+   disk at `/var/mnt/longhorn`
+   (`kubectl -n longhorn-system get nodes.longhorn.io k3s-master -o yaml`).
+   Replicas are 1 (single disk, no redundancy).
+3. VolSync (adguard, authentik, jellyfin, home-assistant): restore from B2.
+   Example for AdGuard:
 
-- **Primary DNS:** `10.10.10.10` (AdGuard's dedicated LoadBalancer IP)
-- **Secondary DNS:** `1.1.1.1` (fallback if AdGuard is unreachable)
+   ```bash
+   kubectl -n adguard scale deployment adguard-home --replicas=0
+   kubectl -n adguard delete pvc adguard-config
+   kubectl apply -f restore/adguard-restore.yaml
+   kubectl -n adguard get replicationdestination adguard-config-restore -w
+   RESTORED_PVC=$(kubectl -n adguard get replicationdestination adguard-config-restore \
+     -o jsonpath='{.status.latestImage.name}')
+   # set volumeName: $RESTORED_PVC in restore/adguard-pvc-final.yaml, then:
+   kubectl apply -f restore/adguard-pvc-final.yaml
+   kubectl -n adguard scale deployment adguard-home --replicas=1
+   kubectl delete -f restore/adguard-restore.yaml
+   ```
 
-Log into the AdGuard UI at `https://adguard.hermnet.org` and verify your DNS rewrites and block lists are loaded from the restored config. If AdGuard's config is missing, proceed to Phase 5.
-
----
-
-## Phase 5 — Restore Application Data from VolSync
-
-If application PVCs are empty (new cluster, no data migration), restore from Backblaze B2 backups.
-
-### 5.1 Re-seal secrets before restoring
-
-The B2 repo secrets must be re-sealed with the current Sealed Secrets controller key. For each component:
-
-```bash
-# Example for adguard — repeat for jellyfin, etcd
-kubectl create secret generic adguard-b2-repo \
-  --namespace adguard \
-  --from-literal=RESTIC_REPOSITORY=s3:https://s3.us-east-005.backblazeb2.com/hermnet-restic-private/adguard \
-  --from-literal=RESTIC_PASSWORD=YOUR_RESTIC_REPOSITORY_PASSWORD \
-  --from-literal=AWS_ACCESS_KEY_ID=YOUR_B2_KEY_ID \
-  --from-literal=AWS_SECRET_ACCESS_KEY=YOUR_B2_APPLICATION_KEY \
-  --dry-run=client -o yaml \
-| kubeseal \
-  --controller-name sealed-secrets-controller \
-  --controller-namespace sealed-secrets \
-  --format yaml \
-> infrastructure/adguard/sealed-adguard-b2-repo.yaml
-
-# Commit and push, then wait for ArgoCD to sync the new sealed secret
-git add infrastructure/adguard/sealed-adguard-b2-repo.yaml
-git commit -m "chore: re-seal adguard b2 repo secret after cluster rebuild"
-git push
-```
-
-### 5.2 Restore AdGuard config PVC
-
-```bash
-# Scale down AdGuard
-kubectl scale deployment adguard-home -n adguard --replicas=0
-
-# Delete the empty PVC
-kubectl delete pvc adguard-config -n adguard
-
-# Apply the VolSync restore manifest
-kubectl apply -f restore/adguard-restore.yaml
-
-# Watch for completion
-kubectl get replicationdestination adguard-config-restore -n adguard -w
-# Wait for STATUS.LAST_SYNC_TIME to populate
-
-# Get the name of the restored PVC
-RESTORED_PVC=$(kubectl get replicationdestination adguard-config-restore \
-  -n adguard -o jsonpath='{.status.latestImage.name}')
-echo "Restored PVC: $RESTORED_PVC"
-
-# Edit restore/adguard-pvc-final.yaml and set volumeName: $RESTORED_PVC
-# then apply:
-kubectl apply -f restore/adguard-pvc-final.yaml
-
-# Scale AdGuard back up
-kubectl scale deployment adguard-home -n adguard --replicas=1
-
-# Clean up the ReplicationDestination
-kubectl delete -f restore/adguard-restore.yaml
-```
-
-### 5.3 Restore Jellyfin config PVC
-
-Follow the same procedure as AdGuard, substituting `jellyfin` for `adguard` and using the Jellyfin-specific secret name `jellyfin-b2-repo`.
+4. CNPG databases restore from barman (B2) through Argo.
+5. media, metube and paperless-nfs have no VolSync: copy the data from the
+   Phase 0 backup into the new PVCs.
 
 ---
 
-## Phase 6 — Post-Restore Verification
+## Phase 4 — Router DNS
 
-Run through this checklist to confirm the cluster is fully operational:
+Primary DNS `192.168.7.202` (AdGuard), secondary `1.1.1.1`.
 
-- [ ] All ArgoCD Applications show `Synced` and `Healthy`
-- [ ] `kubectl get nodes` shows all three nodes as `Ready`
-- [ ] MetalLB has assigned 10.10.10.10 to AdGuard and 10.10.10.20 to Traefik
-- [ ] Wildcard certificate is `READY=True` in the `cert-manager` namespace
-- [ ] TLS secret is reflected to `adguard`, `longhorn-system`, `argocd`, `volsync-system`, `etcd-backup`
-- [ ] `https://argocd.hermnet.org` loads with a valid TLS cert
-- [ ] `https://adguard.hermnet.org` loads AdGuard Home UI
-- [ ] `https://longhorn.hermnet.org` loads the Longhorn UI showing the USB disk
-- [ ] `https://jellyfin.hermnet.org` loads Jellyfin
-- [ ] DNS queries to 10.10.10.10 resolve correctly (test: `dig @10.10.10.10 hermnet.org`)
-- [ ] VolSync ReplicationSources are running (`kubectl get replicationsource -A`)
-- [ ] etcd-backup CronJob is present (`kubectl get cronjob -n etcd-backup`)
-- [ ] Back up the NEW Sealed Secrets master key to offline storage (see `sealed-secrets-backup.md`)
+---
+
+## Phase 5 — Verification
+
+- [ ] `talosctl -n 192.168.7.15 health` passes; `kubectl get nodes` shows 3 Ready
+- [ ] `talosctl -n <ip> service ext-tailscale` is Running on every node
+- [ ] All Argo CD Applications are Synced/Healthy; the cilium DaemonSet was not recreated by the adoption
+- [ ] gateway-api-crds is Synced and the CRDs are Established
+- [ ] ARP for .202 and .205 is answered only by k3s-master; the other LB IPs answer
+- [ ] Real client IPs appear in the AdGuard and Traefik logs
+- [ ] Traefik pods are admitted under PSA restricted in the `traefik` namespace
+- [ ] The wildcard certificate is served (default TLSStore) at https://argocd.hermnet.org
+- [ ] https://hubble.hermnet.org is reachable only through authentik
+- [ ] Longhorn UI shows the USB disk; volumes are Healthy
+- [ ] `dig @192.168.7.202 hermnet.org` resolves
+- [ ] `kubectl get replicationsource -A` shows VolSync running
+- [ ] Take an etcd snapshot: `make -C talos etcd-backup`
+- [ ] New Sealed Secrets key (day0 only): export and back it up (`sealed-secrets-backup.md`)
 
 ---
 
 ## Troubleshooting
 
-### cert-manager DNS01 challenge failing
+### Nodes NotReady after bootstrap
 
-Check the ACME challenge status:
+No CNI yet: run `make -C talos cilium-bootstrap`. It verifies the chart sha256
+from `versions.env` before installing.
+
+### LoadBalancer IP pending or not reachable
+
 ```bash
-kubectl describe certificaterequest -n cert-manager
-kubectl logs -n cert-manager deploy/cert-manager -f
+kubectl -n kube-system logs ds/cilium | grep -i -e l2 -e lbipam
+kubectl describe ciliumloadbalancerippool infrastructure-pool
 ```
 
-Verify the `cloudflare-api-token` secret was properly decrypted:
+Services with `externalTrafficPolicy: Local` only answer from a node that runs
+their pod; their L2 policy `pinned-k3s-master` must select k3s-master, and the
+pods are pinned there with a nodeSelector.
+
+### Longhorn disk missing
+
 ```bash
-kubectl get secret cloudflare-api-token -n cert-manager
+talosctl -n 192.168.7.15 get volumestatus u-longhorn
+kubectl -n longhorn-system logs -l app=longhorn-manager --tail=100
 ```
 
-### MetalLB not assigning IPs
+Check the disk serial in `talos/nodes/k3s-master.yaml`. `node-disk-config.yaml`
+reconciles onto the Node CR that Longhorn creates, so it may need a manual
+Argo CD sync after Longhorn first starts.
 
-Ensure MetalLB is fully running before the IPAddressPool is applied. If the IPAddressPool was created before MetalLB CRDs existed, delete and re-sync it:
+### cert-manager DNS01 failing
+
 ```bash
-kubectl delete ipaddresspool infrastructure-pool -n metallb-system
-# Force an ArgoCD sync on the metallb application
-```
-
-### Longhorn node disk not appearing
-
-SSH into `k3s-master` and verify the USB is mounted:
-```bash
-mountpoint /mnt/longhorn-usb && df -h /mnt/longhorn-usb
-```
-
-Check Longhorn manager logs:
-```bash
-kubectl logs -n longhorn-system -l app=longhorn-manager --tail=100
-```
-
-The `node-disk-config.yaml` Node resource may need a manual sync trigger in ArgoCD since the Longhorn Node resource is auto-created by Longhorn and ArgoCD is reconciling onto it.
-
-### ArgoCD UI not loading after ingress is applied
-
-Check that Traefik received its LoadBalancer IP:
-```bash
-kubectl get svc traefik -n kube-system
-```
-
-If `EXTERNAL-IP` is `<pending>`, MetalLB is not assigning IPs. Check the MetalLB controller logs:
-```bash
-kubectl logs -n metallb-system -l app=metallb,component=controller
+kubectl -n cert-manager describe certificaterequest
+kubectl -n cert-manager logs deploy/cert-manager -f
+kubectl -n cert-manager get secret cloudflare-api-token
 ```
