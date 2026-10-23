@@ -1,1 +1,18 @@
 ansible/roles/argocd_bootstrap/files/sealed-secrets-master-key.yaml
+
+# --- Talos / cluster access artifacts (never commit) ---
+# Rendered machine configs contain the cluster secrets in plaintext.
+talos/_out/
+talosconfig
+kubeconfig*
+# Plaintext Talos secrets bundle (only talos/secrets.sops.yaml, encrypted, is committed)
+secrets.yaml
+# Plaintext per-node Tailscale configs (commit only *.tailscale.sops.yaml, encrypted)
+talos/nodes/*.tailscale.yaml
+# age private keys
+*.agekey
+keys.txt
+# Sealed Secrets master key backups, wherever they end up
+*sealed-secrets-master-key*.yaml
+# etcd snapshots
+*.snapshot
