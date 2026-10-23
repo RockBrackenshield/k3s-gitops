@@ -1,0 +1,104 @@
+---
+# Talos + cluster-bootstrap checks. Every pin comes from talos/versions.env.
+# Nothing here has access to real secrets: render-test generates throwaway
+# Talos secrets in a temp dir and validates with a dummy USB serial.
+name: talos
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guards:
+    name: sops guard + script tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: shellcheck
+        run: shellcheck scripts/*.sh scripts/tests/*.sh
+
+      - name: SOPS guard on the tree (scripts/check-sops.sh)
+        run: scripts/check-sops.sh
+
+      - name: check-sops tests
+        run: scripts/tests/check-sops_test.sh
+
+      - name: Version sync (scripts/check-versions.sh, offline)
+        run: scripts/check-versions.sh
+
+      - name: check-versions tests
+        run: scripts/tests/check-versions_test.sh
+
+      - name: talos/Makefile guard tests
+        run: scripts/tests/talos-makefile_test.sh
+
+  talos:
+    name: talosctl validate (throwaway secrets) + schematic check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install talosctl (sha256-verified)
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . talos/versions.env
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSLo "$RUNNER_TEMP/bin/talosctl" \
+            "https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/talosctl-linux-amd64"
+          echo "${TALOSCTL_SHA256_LINUX_AMD64}  $RUNNER_TEMP/bin/talosctl" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/bin/talosctl"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Versions
+        run: talosctl version --client
+
+      - name: Schematic IDs match files and the Image Factory
+        run: make -C talos schematic-check
+
+      - name: Render + validate --mode metal --strict (all nodes)
+        run: make -C talos render-test
+
+  cilium-render:
+    name: Cilium chart sha + digest-pinned images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install helm (sha256-verified)
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . talos/versions.env
+          mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP"
+          curl -fsSLo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          echo "${HELM_SHA256_LINUX_AMD64}  helm.tar.gz" | sha256sum -c -
+          tar -xzf helm.tar.gz -C bin --strip-components=1 linux-amd64/helm
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: check-versions --render
+        run: |
+          helm version --short
+          scripts/check-versions.sh --render

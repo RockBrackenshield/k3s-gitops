@@ -22,10 +22,14 @@ env:
   # sha256 of kubeconform-linux-amd64.tar.gz from the release's CHECKSUMS
   KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
   # Kubernetes JSON schemas pinned to a commit of yannh/kubernetes-json-schema
-  # (instead of the moving default branch). K8s version from
-  # ansible/inventory/group_vars/all.yaml (k3s_version: v1.29.0+k3s1).
+  # (instead of the moving default branch). K8S_VERSION must equal
+  # KUBERNETES_VERSION in talos/versions.env (scripts/check-versions.sh).
   K8S_SCHEMA_SHA: b2ba4defe30ed5a0104987433896f1fd32807304
-  K8S_VERSION: 1.29.0
+  K8S_VERSION: 1.36.5
+  # CRD schemas (Cilium, Traefik, Argo CD, Longhorn, cert-manager, ...) from
+  # datreeio/CRDs-catalog, pinned to a commit. CRDs not in the catalog are
+  # still skipped (-ignore-missing-schemas).
+  CRD_SCHEMA_SHA: 501527ab9c40c827144c8f45945b25a023e344ce
 
 jobs:
   yamllint:
@@ -112,7 +116,7 @@ jobs:
           [ "$n" -gt 0 ] || { echo "::error::no kustomizations found"; exit 1; }
           exit "$fail"
 
-      - name: kubeconform (strict, CRDs without schemas skipped)
+      - name: kubeconform (strict; CRDs via datreeio catalog, others skipped)
         run: |
           set -uo pipefail
           fail=0
@@ -121,6 +125,7 @@ jobs:
             kubeconform -strict -ignore-missing-schemas -summary \
               -kubernetes-version "${K8S_VERSION}" \
               -schema-location "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/${K8S_SCHEMA_SHA}/{{.NormalizedKubernetesVersion}}-standalone{{.StrictSuffix}}/{{.ResourceKind}}{{.KindSuffix}}.json" \
+              -schema-location "https://raw.githubusercontent.com/datreeio/CRDs-catalog/${CRD_SCHEMA_SHA}/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json" \
               "$f" || fail=1
           done
           exit "$fail"

@@ -11,8 +11,9 @@ pass=0
 failed=0
 
 fresh() {
-  rm -rf "$tmp/w"; mkdir -p "$tmp/w/bootstrap/apps"
+  rm -rf "$tmp/w"; mkdir -p "$tmp/w/bootstrap/apps" "$tmp/w/.github/workflows"
   cp -r "$repo/talos" "$repo/scripts" "$tmp/w/"
+  cp "$repo/.github/workflows/validate.yml" "$tmp/w/.github/workflows/"
   cp "$repo/bootstrap/apps/cilium.yaml" "$tmp/w/bootstrap/apps/"
 }
 
@@ -35,6 +36,8 @@ expect 1 "installer digest drift in rpi4 patch fails" 's/@sha256:9dfd9dcd/@sha25
 expect 1 "installer without digest in rpi5 patch fails" 's/@sha256:[0-9a-f]+$//' talos/patches/rpi5.yaml
 expect 1 "schematic ID drift fails" 's/^SCHEMATIC_RPI4=.*/SCHEMATIC_RPI4=deadbeef/' talos/versions.env
 expect 1 "malformed CILIUM_CHART_SHA256 fails" 's/^CILIUM_CHART_SHA256=.*/CILIUM_CHART_SHA256=abc/' talos/versions.env
+expect 1 "KUBERNETES_VERSION bump without validate.yml K8S_VERSION fails" 's/^KUBERNETES_VERSION=.*/KUBERNETES_VERSION=1.36.6/' talos/versions.env
+expect 1 "validate.yml K8S_VERSION drift fails" 's/^(  K8S_VERSION: ).*/\11.35.0/' .github/workflows/validate.yml
 
 echo "check-versions tests: $pass passed, $failed failed"
 [ "$failed" -eq 0 ]

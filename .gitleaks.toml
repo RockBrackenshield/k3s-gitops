@@ -1,0 +1,20 @@
+# gitleaks config: the default ruleset plus ONE narrow allowlist.
+# Sealed Secrets ciphertext (SealedSecret spec.encryptedData values, which
+# always start with "Ag" and are several hundred base64 chars) trips the
+# generic-api-key rule. It is safe to commit by design: only the in-cluster
+# controller key can decrypt it. Anything else in those files, and any
+# plaintext anywhere, is still reported.
+# Run: gitleaks dir . && gitleaks git .
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Sealed Secrets encryptedData ciphertext in sealed-*.yaml"
+# targetRules + AND: only generic-api-key findings, only in sealed-*.yaml,
+# only when the value is Ag... ciphertext. (Without targetRules gitleaks
+# 8.30 skipped the whole file on a path match, hiding planted plaintext.)
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''(^|/)sealed-[^/]+\.ya?ml$''']
+regexTarget = "secret"
+regexes = ['''^Ag[A-Za-z0-9+/]{300,}={0,2}$''']

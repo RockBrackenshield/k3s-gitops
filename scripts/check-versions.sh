@@ -4,6 +4,8 @@
 #     - talos/versions.env CILIUM_VERSION == cilium chart targetRevision in
 #       bootstrap/apps/cilium.yaml (exact version)
 #     - CILIUM_CHART_SHA256 is a sha256; schematic IDs are 64-hex
+#     - KUBERNETES_VERSION == K8S_VERSION in .github/workflows/validate.yml
+#       (kubeconform schemas match the cluster)
 #     - talos/patches/rpi{4,5}.yaml installer == factory ref built from
 #       SCHEMATIC_RPIx:TALOS_VERSION@INSTALLER_DIGEST_RPIx
 #   --render (network, needs helm):
@@ -21,6 +23,9 @@ get() { sed -n "s/^$1=//p" "$env_file" | tail -1; }
 TALOS_VERSION=$(get TALOS_VERSION)
 CILIUM_VERSION=$(get CILIUM_VERSION)
 CILIUM_CHART_SHA256=$(get CILIUM_CHART_SHA256)
+KUBERNETES_VERSION=$(get KUBERNETES_VERSION)
+workflow=.github/workflows/validate.yml
+ci_k8s=$(sed -n 's/^[[:space:]]*K8S_VERSION:[[:space:]]*"\{0,1\}\([^"[:space:]]*\)"\{0,1\}.*/\1/p' "$workflow" | head -1)
 
 # targetRevision of the list item under sources: that has `chart: cilium`.
 app_rev=$(awk '
@@ -34,6 +39,8 @@ app_rev=$(awk '
 [[ $app_rev =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || err "$app chart targetRevision '$app_rev' is not an exact x.y.z version"
 [ "$CILIUM_VERSION" = "$app_rev" ] || err "CILIUM_VERSION=$CILIUM_VERSION ($env_file) != targetRevision $app_rev ($app)"
 [[ $CILIUM_CHART_SHA256 =~ ^[0-9a-f]{64}$ ]] || err "CILIUM_CHART_SHA256 is not a sha256"
+[[ $KUBERNETES_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || err "KUBERNETES_VERSION '$KUBERNETES_VERSION' is not an exact x.y.z version"
+[ "$KUBERNETES_VERSION" = "$ci_k8s" ] || err "KUBERNETES_VERSION=$KUBERNETES_VERSION ($env_file) != K8S_VERSION '$ci_k8s' ($workflow)"
 [[ $TALOS_VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || err "TALOS_VERSION '$TALOS_VERSION' is not vX.Y.Z"
 
 for b in 4 5; do
@@ -63,5 +70,5 @@ if [ "${1:-}" = "--render" ]; then
   echo "${#images[@]} Cilium images checked"
 fi
 
-[ "$fail" -eq 0 ] && echo "versions in sync (Talos $TALOS_VERSION, Cilium $CILIUM_VERSION)"
+[ "$fail" -eq 0 ] && echo "versions in sync (Talos $TALOS_VERSION, Kubernetes $KUBERNETES_VERSION, Cilium $CILIUM_VERSION)"
 exit "$fail"
