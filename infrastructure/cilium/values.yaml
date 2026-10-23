@@ -1,0 +1,36 @@
+# Cilium 1.20.4 values for Talos (Sidero guide) - used by BOTH
+# `make -C talos cilium-bootstrap` (day 1, before Argo) and the Argo app
+# bootstrap/apps/cilium.yaml (which then adopts the release). Keep them identical.
+# Images: the chart pins every image by digest (useDigest: true defaults);
+# scripts/check-versions.sh --render asserts that.
+ipam:
+  mode: kubernetes
+kubeProxyReplacement: true
+k8sServiceHost: localhost
+k8sServicePort: 7445          # KubePrism
+securityContext:
+  capabilities:
+    ciliumAgent: [CHOWN, KILL, NET_ADMIN, NET_RAW, IPC_LOCK, SYS_ADMIN, SYS_RESOURCE, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    cleanCiliumState: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+cgroup:
+  autoMount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup
+devices: end0                 # LAN NIC only (not tailscale0) - UNVERIFIED name
+l2announcements:
+  enabled: true
+k8sClientRateLimit:           # L2 announcement leases need headroom
+  qps: 10
+  burst: 20
+operator:
+  replicas: 1
+rollOutCiliumPods: true
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+  tls:
+    auto:
+      method: cronJob         # avoid helm-generated certs diffing in Argo

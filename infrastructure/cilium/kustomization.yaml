@@ -1,0 +1,7 @@
+# Cluster-scoped Cilium objects. values.yaml is NOT a resource: it is the
+# chart's values file (bootstrap/apps/cilium.yaml, talos/Makefile).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - lb-pool.yaml
+  - l2-policy.yaml

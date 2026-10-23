@@ -1,0 +1,34 @@
+# L2 (ARP) announcements on the LAN NIC only.
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: lan                    # every LB service EXCEPT the pinned ones
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  serviceSelector:
+    matchExpressions:
+      - {key: l2.hermnet.org/pin, operator: DoesNotExist}
+  interfaces: ["^end0$"]
+  externalIPs: false
+  loadBalancerIPs: true
+---
+# Node-scoped: externalTrafficPolicy Local services whose pods are pinned to
+# k3s-master (AdGuard DNS .202, Traefik .205), so the announcing node is the one
+# with the endpoint. UNTESTED workaround - see the PR risks.
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: pinned-k3s-master
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  serviceSelector:
+    matchLabels:
+      l2.hermnet.org/pin: k3s-master
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: k3s-master
+  interfaces: ["^end0$"]
+  externalIPs: false
+  loadBalancerIPs: true

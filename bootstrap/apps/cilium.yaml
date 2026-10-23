@@ -1,0 +1,42 @@
+# k3s-gitops/bootstrap/apps/cilium.yaml
+# ---
+# Cilium CNI. Installed once imperatively by `make -C talos cilium-bootstrap`
+# (nodes need a CNI before Argo can run); this app then adopts the same
+# release (same chart version, same values file, releaseName cilium in
+# kube-system). Wave -3: after gateway-api-crds (-4), before everything else.
+# The chart version MUST equal CILIUM_VERSION in talos/versions.env
+# (scripts/check-versions.sh, CI).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.cilium.io
+      chart: cilium
+      targetRevision: 1.20.4
+      helm:
+        releaseName: cilium
+        valueFiles:
+          - $values/infrastructure/cilium/values.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      ref: values
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      path: infrastructure/cilium
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+# No ignoreDifferences needed: with hubble.tls.auto.method=cronJob the chart
+# renders no Secrets, and the render is deterministic (checked).
