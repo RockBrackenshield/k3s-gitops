@@ -1,0 +1,12 @@
+# rpi5.yaml - Raspberry Pi 5 board patch. Installer AND disk in ONE document
+# (split documents lose diskSelector). Image = Factory schematic SCHEMATIC_RPI5
+# at TALOS_VERSION, pinned by digest; must match talos/versions.env
+# (scripts/check-versions.sh enforces it).
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+installer:
+  image: factory.talos.dev/metal-installer/79b25588d06fc7d187c5b1b6c3321354b156cfc58c8a2c723ab6b398aea2c381:v1.14.4@sha256:6156077e7234dbec4a19ca81dba9d7d343349b99add0452808e8881c2de9dc27
+provisioning:
+  diskSelector:
+    match: disk.dev_path == "/dev/mmcblk0"   # SD card; confirm: talosctl get disks --insecure
+  wipe: false
