@@ -70,19 +70,6 @@ ports:
   websecure:
     forwardedHeaders:
       trustedIPs: [127.0.0.1/32, 10.42.0.0/16, 10.43.0.0/16]
-  # DNS over TCP/UDP for AdGuard (infrastructure/adguard/ingressroute-tcp.yaml).
-  dns-tcp:
-    port: 9053
-    expose:
-      default: true
-    exposedPort: 53
-    protocol: TCP
-  dns-udp:
-    port: 9054
-    expose:
-      default: true
-    exposedPort: 53
-    protocol: UDP
 
 ingressRoute:
   dashboard:

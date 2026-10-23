@@ -1,0 +1,44 @@
+# k3s-gitops/bootstrap/apps/coredns.yaml
+# ---
+# CoreDNS 1.15.0 (chart coredns/helm 1.49.0) as the LAN resolver on
+# 192.168.7.202 (replaces AdGuard Home). NOT the cluster DNS (that stays the
+# Talos-managed CoreDNS in kube-system).
+# Sources:
+#   1. the chart, release lan-dns, values from source 2
+#   2. this repo as the $values ref (infrastructure/coredns/values.yaml)
+#   3. infrastructure/coredns (Namespace with PSA restricted labels, the
+#      nextdns-profile SealedSecret, the CiliumNetworkPolicy)
+# Single replica pinned to k3s-master by design: if it is down, LAN clients
+# fall back to the router's secondary resolver.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: coredns
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://coredns.github.io/helm
+      chart: coredns
+      targetRevision: 1.49.0
+      helm:
+        releaseName: lan-dns
+        valueFiles:
+          - $values/infrastructure/coredns/values.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      ref: values
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      path: infrastructure/coredns
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: coredns
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
