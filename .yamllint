@@ -1,0 +1,24 @@
+---
+# yamllint config used by .github/workflows/validate.yml.
+# Goal: block YAML that is broken (syntax errors, duplicate keys, bad
+# indentation) while not failing on pre-existing cosmetic style in main.
+# Style rules relaxed below are cosmetic only; tighten them later in a
+# dedicated PR that also fixes the manifests.
+extends: default
+
+rules:
+  # Kept as errors (from `default`): syntax errors are always fatal,
+  # key-duplicates, anchors, indentation, hyphens, colons, empty-lines, ...
+  key-duplicates: enable
+
+  # Relaxed: pre-existing style in main (counts from yamllint 1.38.0 on main).
+  document-start: disable          # 213 files without leading '---'
+  line-length: disable             # 147 long lines (URLs, keys, Helm values)
+  new-line-at-end-of-file: disable # 110 files
+  comments: disable                # 67 (missing space after '#', etc.)
+  comments-indentation: disable    # 13
+  trailing-spaces: disable         # 2 (incl. a SealedSecret, which is not edited by hand)
+  braces: disable                  # Ansible inline dicts in roles/common
+  commas: disable                  # Ansible inline dicts in roles/common
+  truthy:
+    check-keys: false              # GitHub `on:` key; values still warned
