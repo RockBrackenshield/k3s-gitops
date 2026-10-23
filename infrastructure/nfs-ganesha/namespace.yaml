@@ -7,4 +7,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
   labels:
+    # Talos enforces PSA baseline by default; nfs-server-provisioner adds
+    # DAC_READ_SEARCH and SYS_RESOURCE (not allowed by baseline).
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
     app.kubernetes.io/name: nfs-ganesha

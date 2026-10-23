@@ -3,3 +3,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: tailscale
+  labels:
+    # Talos enforces PSA baseline by default; tailscale-operator proxy pods
+    # (connector/subnet router) run a privileged sysctl init container here.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
