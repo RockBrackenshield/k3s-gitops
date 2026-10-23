@@ -94,7 +94,7 @@ kubectl -n argocd get applications -w
 | -3 | cilium (adopts the release from `cilium-bootstrap`; LB pool + L2 policies) |
 | -2 | sealed-secrets |
 | -1 | traefik, cert-manager, reflector, longhorn, snapshot-controller |
-| 0  | infrastructure, volsync, adguard, authentik, argocd-ingress, external-snapshotter-crds |
+| 0  | infrastructure, volsync, coredns, authentik, argocd-ingress, external-snapshotter-crds |
 | 1+ | renovate, jellyfin, csi-driver-smb, metube, paperless-nfs-ganesha, paperless, ... |
 
 Argo CD UI before TLS is ready:
@@ -111,7 +111,7 @@ with `lbipam.cilium.io/ips`.
 
 | Service | IP | Announced by |
 |---------|----|--------------|
-| adguard/adguard-dns | 192.168.7.202 | k3s-master only (`externalTrafficPolicy: Local`) |
+| coredns/lan-dns | 192.168.7.202 (UDP+TCP 53) | k3s-master only (`externalTrafficPolicy: Local`) |
 | traefik/traefik | 192.168.7.205 | k3s-master only (`externalTrafficPolicy: Local`) |
 | nfs-ganesha-lan | 192.168.7.203 | any node |
 | samba | 192.168.7.206 | any node |
@@ -143,21 +143,15 @@ kubectl -n kube-system get secret wildcard-hermnet-org-tls   # Reflector copy us
    disk at `/var/mnt/longhorn`
    (`kubectl -n longhorn-system get nodes.longhorn.io k3s-master -o yaml`).
    Replicas are 1 (single disk, no redundancy).
-3. VolSync (adguard, authentik, jellyfin, home-assistant): restore from B2.
-   Example for AdGuard:
-
-   ```bash
-   kubectl -n adguard scale deployment adguard-home --replicas=0
-   kubectl -n adguard delete pvc adguard-config
-   kubectl apply -f restore/adguard-restore.yaml
-   kubectl -n adguard get replicationdestination adguard-config-restore -w
-   RESTORED_PVC=$(kubectl -n adguard get replicationdestination adguard-config-restore \
-     -o jsonpath='{.status.latestImage.name}')
-   # set volumeName: $RESTORED_PVC in restore/adguard-pvc-final.yaml, then:
-   kubectl apply -f restore/adguard-pvc-final.yaml
-   kubectl -n adguard scale deployment adguard-home --replicas=1
-   kubectl delete -f restore/adguard-restore.yaml
-   ```
+3. VolSync (authentik, jellyfin, home-assistant): restore from B2.
+   No restore manifests are checked in for these apps. Write a
+   `ReplicationDestination` per app, following the pattern of the former
+   AdGuard example: scale the workload to 0, delete its PVC, apply the
+   ReplicationDestination, wait for `.status.latestImage`, recreate the PVC
+   with `volumeName` set to the restored volume, scale back up, then delete
+   the ReplicationDestination. The old AdGuard manifests remain in git
+   history (`git log --all -- restore/adguard-restore.yaml`).
+   CoreDNS (lan-dns) is stateless and has nothing to restore.
 
 4. CNPG databases restore from barman (B2) through Argo.
 5. media, metube and paperless-nfs have no VolSync: copy the data from the
@@ -167,7 +161,10 @@ kubectl -n kube-system get secret wildcard-hermnet-org-tls   # Reflector copy us
 
 ## Phase 4 — Router DNS
 
-Primary DNS `192.168.7.202` (AdGuard), secondary `1.1.1.1`.
+Primary DNS `192.168.7.202` (CoreDNS `lan-dns`: `hermnet.org` answered
+locally, everything else forwarded to NextDNS over DoT only), secondary
+`1.1.1.1`. The secondary is plaintext and bypasses NextDNS and the local
+`hermnet.org` answers; clients use it whenever .202 is down.
 
 ---
 
@@ -178,12 +175,16 @@ Primary DNS `192.168.7.202` (AdGuard), secondary `1.1.1.1`.
 - [ ] All Argo CD Applications are Synced/Healthy; the cilium DaemonSet was not recreated by the adoption
 - [ ] gateway-api-crds is Synced and the CRDs are Established
 - [ ] ARP for .202 and .205 is answered only by k3s-master; the other LB IPs answer
-- [ ] Real client IPs appear in the AdGuard and Traefik logs
+- [ ] Real client IPs appear in the Traefik logs (lan-dns has no query log; its `acl`
+      allows only RFC1918, 100.64.0.0/10 and loopback sources)
 - [ ] Traefik pods are admitted under PSA restricted in the `traefik` namespace
 - [ ] The wildcard certificate is served (default TLSStore) at https://argocd.hermnet.org
 - [ ] https://hubble.hermnet.org is reachable only through authentik
 - [ ] Longhorn UI shows the USB disk; volumes are Healthy
-- [ ] `dig @192.168.7.202 hermnet.org` resolves
+- [ ] `dig @192.168.7.202 hermnet.org A` and `dig @192.168.7.202 argocd.hermnet.org A`
+      both return `192.168.7.205` (Traefik); AAAA/TXT/MX for these return NOERROR with
+      no answer, and `hermnet.org` names are never forwarded upstream
+- [ ] `dig @192.168.7.202 example.com` resolves (NextDNS over DoT), over UDP and `+tcp`
 - [ ] `kubectl get replicationsource -A` shows VolSync running
 - [ ] Take an etcd snapshot: `make -C talos etcd-backup`
 - [ ] New Sealed Secrets key (day0 only): export and back it up (`sealed-secrets-backup.md`)

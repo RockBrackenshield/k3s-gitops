@@ -37,7 +37,6 @@ are stored inside sealed secrets, meaning if you lose the Sealed Secrets master
 key, you also lose access to your restic passwords and therefore your backups.
 
 Store restic passwords independently, in plaintext in your password manager:
-- `adguard` restic password
 - `jellyfin` restic password
 - `etcd-backup` restic password
 
