@@ -1,0 +1,14 @@
+---
+# SOPS creation rules (age). Public recipients only - safe to commit.
+# REPLACE the placeholder with your age public key before encrypting anything:
+#   age-keygen -o ~/.config/sops/age/keys.txt   # prints "Public key: age1..."
+# sops refuses to encrypt while the placeholder is present.
+# Rotation / second recipient: add the key to BOTH rules, then
+#   sops updatekeys -y talos/secrets.sops.yaml talos/nodes/*.tailscale.sops.yaml
+creation_rules:
+  - path_regex: ^talos/secrets\.sops\.yaml$
+    age: >-
+      age1REPLACE_ME_WITH_YOUR_AGE_PUBLIC_KEY
+  - path_regex: ^talos/.*\.sops\.yaml$   # nodes/*.tailscale.sops.yaml etc.
+    age: >-
+      age1REPLACE_ME_WITH_YOUR_AGE_PUBLIC_KEY

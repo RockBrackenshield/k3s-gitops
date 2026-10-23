@@ -1,0 +1,12 @@
+---
+# Local hooks only (no third-party hook repos). Install: pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: check-sops
+        name: SOPS encryption guard (scripts/check-sops.sh)
+        entry: scripts/check-sops.sh
+        language: script
+        # Run on every staged file: the guard itself decides which names matter
+        # (*.sops.yaml, talosconfig, kubeconfig*, secrets.yaml, talos/_out/*).
+        pass_filenames: true
