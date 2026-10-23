@@ -5,3 +5,4 @@ kind: Kustomization
 resources:
   - lb-pool.yaml
   - l2-policy.yaml
+  - hubble-ingressroute.yaml
