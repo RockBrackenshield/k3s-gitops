@@ -20,7 +20,8 @@ spec:
     path: config/crd/standard
     directory:
       # Standard channel minus the CRDs Cilium 1.20 calls optional (not needed:
-      # AdGuard has its own LB Service, Traefik uses IngressRouteTCP/UDP).
+      # LAN DNS is CoreDNS lan-dns with its own LB Service; Traefik serves no
+      # TCP/UDP routes).
       # Keeps: gatewayclasses, gateways, httproutes, grpcroutes,
       # referencegrants, backendtlspolicies, tlsroutes + vap_safeupgrades.
       exclude: '{*_listenersets.yaml,*_tcproutes.yaml,*_udproutes.yaml}'
