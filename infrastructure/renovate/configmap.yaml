@@ -44,67 +44,80 @@ data:
       automerge: false,
 
       // ── Managers ───────────────────────────────────────────────────────────
-      // argocd         — spec.sources[].targetRevision in Application manifests
-      //                  (sealed-secrets, cert-manager, reflector, volsync)
+      // argocd         — Application sources in bootstrap/: Helm charts
+      //                  (cilium, traefik, longhorn, sealed-secrets, ...) and
+      //                  git tags (gateway-api v1.6.3, traefik CRDs v42.1.3,
+      //                  external-snapshotter). Needs managerFilePatterns.
       // dockerfile     — Base images in any Dockerfiles added in future
-      // github-actions — Action versions in .github/workflows (future-proofing)
+      // github-actions — SHA-pinned actions in .github/workflows (digest + tag comment)
       // kubernetes     — Container image tags in Deployment and CronJob resources
       //                  (adguard, jellyfin, etcd-backup, renovate itself)
-      // kustomize      — Image overrides in kustomization.yaml overlays
-      //                  (e.g. apps/jellyfin/overlays/production)
+      // kustomize      — Image overrides in kustomization.yaml files
+      //                  (bootstrap/argocd tag@digest, jellyfin overlays)
       enabledManagers: [
         'argocd',
+        'custom.regex',
         'dockerfile',
         'github-actions',
         'kubernetes',
         'kustomize',
       ],
+      argocd: {
+        managerFilePatterns: ['/^bootstrap/.+\\.ya?ml$/'],
+      },
+      kubernetes: {
+        managerFilePatterns: ['/^(apps|infrastructure)/.+\\.ya?ml$/'],
+      },
 
       // ── Custom managers ────────────────────────────────────────────────────
       customManagers: [
-        // K3s HelmChart CRD (helm.cattle.io/v1)
-        // These resources are not standard Helm releases and are not picked
-        // up by any built-in manager. The regex matches the field order
-        // as written in the generated files: chart → repo → version.
-        //
-        // Covers:
-        //   infrastructure/metallb/install.yaml       (MetalLB 0.14.5)
-        //   infrastructure/longhorn/helmrelease.yaml  (Longhorn 1.6.0)
+        // talos/versions.env - every pin is preceded by
+        //   # renovate: datasource=<ds> depName=<dep> [registryUrl=<url>]
+        // Bumping TALOS_VERSION or CILIUM_VERSION alone makes CI fail on
+        // purpose (scripts/check-versions.sh): the talosctl checksums,
+        // installer digests (`make -C talos images`) and CILIUM_CHART_SHA256
+        // must be updated in the same PR by a human.
         {
           customType: 'regex',
-          fileMatch: [
-            '^infrastructure/metallb/install\\.yaml$',
-            '^infrastructure/longhorn/helmrelease\\.yaml$',
-          ],
+          managerFilePatterns: ['/^talos/versions\\.env$/'],
           matchStrings: [
-            'chart:\\s+(?<depName>\\S+)\\n\\s+repo:\\s+(?<registryUrl>\\S+)\\n\\s+version:\\s+(?<currentValue>\\S+)',
+            '#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+registryUrl=(?<registryUrl>\\S+))?\\n[A-Z0-9_]+=(?<currentValue>\\S+)',
           ],
-          datasourceTemplate: 'helm',
         },
 
-        // K3s server version in Ansible group_vars
-        // Matches: k3s_version: v1.29.0+k3s1
-        // Datasource: GitHub releases for k3s-io/k3s
+        // Argo CD install manifest ref (raw URL, not understood by the
+        // kustomize manager). Bump the image digests below it together.
         {
           customType: 'regex',
-          fileMatch: ['^ansible/inventory/group_vars/all\\.yaml$'],
+          managerFilePatterns: ['/^bootstrap/argocd/kustomization\\.yaml$/'],
           matchStrings: [
-            'k3s_version:\\s+(?<currentValue>v[\\d.]+\\+k3s\\d+)',
+            'argoproj/argo-cd/(?<currentValue>v[\\d.]+)/manifests/install\\.yaml',
           ],
           datasourceTemplate: 'github-releases',
-          depNameTemplate: 'k3s-io/k3s',
+          depNameTemplate: 'argoproj/argo-cd',
         },
 
-        // Renovate's customManager for Volume Snapshotter CRDs
+        // Traefik image (tag@digest) in the chart values.
         {
-          customType: "regex",
-          fileMatch: ["bootstrap/crds/kustomization\\.yaml"],
+          customType: 'regex',
+          managerFilePatterns: ['/^infrastructure/traefik/values\\.yaml$/'],
           matchStrings: [
-            "external-snapshotter/(?<currentValue>v[\\d.]+)/client"
+            'repository:\\s*traefik\\n\\s+tag:\\s*(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})',
           ],
-          datasourceTemplate: "github-releases",
-          depNameTemplate: "kubernetes-csi/external-snapshotter",
-        }
+          datasourceTemplate: 'docker',
+          depNameTemplate: 'docker.io/library/traefik',
+        },
+
+        // Volume Snapshotter CRDs
+        {
+          customType: 'regex',
+          managerFilePatterns: ['/^bootstrap/crds/kustomization\\.yaml$/'],
+          matchStrings: [
+            'external-snapshotter/(?<currentValue>v[\\d.]+)/client',
+          ],
+          datasourceTemplate: 'github-releases',
+          depNameTemplate: 'kubernetes-csi/external-snapshotter',
+        },
       ],
 
       // ── Package rules ──────────────────────────────────────────────────────
@@ -113,8 +126,28 @@ data:
         // yanked releases and gives upstream ecosystems time to publish
         // compatible tooling before this cluster consumes a new version.
         {
-          matchPackagePatterns: ['.*'],
+          matchPackageNames: ['*'],
           minimumReleaseAge: '3 days',
+        },
+
+        // Kubernetes: 1.36.x patches only (Cilium 1.20 tests 1.33-1.36).
+        // Tags are vX.Y.Z; versions.env stores X.Y.Z.
+        {
+          matchPackageNames: ['kubernetes/kubernetes'],
+          extractVersion: '^v(?<version>.+)$',
+          allowedVersions: '<1.37.0',
+        },
+
+        // Cilium is pinned in talos/versions.env AND bootstrap/apps/cilium.yaml;
+        // Talos lives in versions.env + the installer refs. Keep each in its
+        // own PR so the manual follow-ups (checksums, digests) are obvious.
+        {
+          matchPackageNames: ['cilium'],
+          groupName: 'cilium',
+        },
+        {
+          matchPackageNames: ['siderolabs/talos'],
+          groupName: 'talos',
         },
 
         // Patch and minor updates are grouped into a single PR per run to

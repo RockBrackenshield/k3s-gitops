@@ -1,5 +1,8 @@
 # k3s-gitops/bootstrap/apps/longhorn.yaml
 # ---
+# Longhorn 1.13.0 as an Argo Helm app (was a k3s HelmChart 1.6.0).
+# Sources: chart + $values ref + infrastructure/longhorn (namespace with PSA
+# privileged, StorageClasses, Node CR, VolumeSnapshotClass, IngressRoute).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,10 +14,20 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/RockBrackenshield/k3s-gitops
-    targetRevision: HEAD
-    path: infrastructure/longhorn
+  sources:
+    - repoURL: https://charts.longhorn.io
+      chart: longhorn
+      targetRevision: 1.13.0
+      helm:
+        releaseName: longhorn
+        valueFiles:
+          - $values/infrastructure/longhorn/values.yaml
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      ref: values
+    - repoURL: https://github.com/RockBrackenshield/k3s-gitops
+      targetRevision: HEAD
+      path: infrastructure/longhorn
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system
@@ -25,3 +38,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - SkipDryRunOnMissingResource=true
+      - ServerSideApply=true   # Longhorn CRDs are large

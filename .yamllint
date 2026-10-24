@@ -18,7 +18,5 @@ rules:
   comments: disable                # 67 (missing space after '#', etc.)
   comments-indentation: disable    # 13
   trailing-spaces: disable         # 2 (incl. a SealedSecret, which is not edited by hand)
-  braces: disable                  # Ansible inline dicts in roles/common
-  commas: disable                  # Ansible inline dicts in roles/common
   truthy:
     check-keys: false              # GitHub `on:` key; values still warned

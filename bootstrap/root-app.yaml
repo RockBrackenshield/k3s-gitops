@@ -1,7 +1,7 @@
 # k3s-gitops/bootstrap/root-app.yaml
 # ---
-# The App of Apps root application. Applied once by Ansible after ArgoCD
-# is installed. Every file under bootstrap/apps/ becomes an ArgoCD Application
+# The App of Apps root application. Applied once by `make bootstrap-root`
+# after Argo CD is installed (`make bootstrap-argocd`). Every file under bootstrap/apps/ becomes an ArgoCD Application
 # managed by this root app.
 apiVersion: argoproj.io/v1alpha1
 kind: Application

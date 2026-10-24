@@ -1,0 +1,16 @@
+# k3s-gitops/infrastructure/traefik/namespace.yaml
+# ---
+# Traefik runs in its own namespace (no longer the k3s-bundled release in
+# kube-system). The chart's default securityContext/podSecurityContext
+# (uid/gid 65532, runAsNonRoot, drop ALL, no privilege escalation,
+# RuntimeDefault seccomp, read-only root fs) is restricted-compatible.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+  labels:
+    app.kubernetes.io/name: traefik
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

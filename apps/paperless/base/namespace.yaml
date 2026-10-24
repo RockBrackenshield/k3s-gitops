@@ -4,3 +4,9 @@ metadata:
   name: paperless
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    # Talos enforces PSA baseline by default; paperless-nfs-ganesha (same
+    # nfs-server-provisioner chart, DAC_READ_SEARCH/SYS_RESOURCE) runs here.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

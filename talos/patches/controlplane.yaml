@@ -1,0 +1,21 @@
+# controlplane.yaml - control plane only (--config-patch-control-plane).
+# Single control plane that also runs workloads: drop the control-plane taint
+# and the exclude-from-external-load-balancers label (Cilium L2 must be able to
+# announce from k3s-master).
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+taints:
+  node-role.kubernetes.io/control-plane:
+    $patch: delete
+labels:
+  node.kubernetes.io/exclude-from-external-load-balancers:
+    $patch: delete
+---
+# Cilium is the CNI (installed by `make cilium-bootstrap`, then adopted by Argo).
+apiVersion: v1alpha1
+kind: KubeFlannelCNIConfig
+$patch: delete
+---
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+enabled: false                # Cilium kube-proxy replacement

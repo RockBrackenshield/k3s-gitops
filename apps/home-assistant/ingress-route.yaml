@@ -3,9 +3,9 @@
 # API group: traefik.io/v1alpha1 = Traefik v3
 # If you're on Traefik v2, change to: traefik.containo.us/v1alpha1
 #
-# hermnet-wildcard-tls must match the secretName in your cert-manager
-# Certificate resource for *.hermnet.org. Reflector should auto-mirror it
-# to home-assistant when the namespace is created, per your existing config.
+# wildcard-hermnet-org-tls is the secretName of the cert-manager Certificate
+# infrastructure/cert-manager/wildcard-cert.yaml; Reflector mirrors it into
+# home-assistant (listed in its reflection namespaces).
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -23,4 +23,4 @@ spec:
         - name: home-assistant
           port: 8123
   tls:
-    secretName: hermnet-wildcard-tls
+    secretName: wildcard-hermnet-org-tls

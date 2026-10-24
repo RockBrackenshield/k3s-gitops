@@ -2,7 +2,10 @@
 # ---
 # Dedicated LoadBalancer service for DNS traffic at the reserved IP 192.168.7.202.
 # Configure your router's DNS server to point at 192.168.7.202.
-# autoAssign is false on the MetalLB pool; the IP is pinned via annotation.
+# The IP is pinned via the Cilium LB IPAM annotation. externalTrafficPolicy
+# Local is only valid while the pod is pinned to k3s-master (deployment.yaml
+# nodeSelector); the l2.hermnet.org/pin label makes only k3s-master announce
+# it (infrastructure/cilium/l2-policy.yaml, pinned-k3s-master). UNTESTED.
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,12 +13,11 @@ metadata:
   namespace: adguard
   annotations:
     argocd.argoproj.io/sync-wave: "0"
-    metallb.universe.tf/loadBalancerIPs: "192.168.7.202"
-    metallb.universe.tf/address-pool: "infrastructure-pool"
-    # For Cilium Deployment: lbipam.cilium.io/ips: "192.168.7.202"
+    lbipam.cilium.io/ips: "192.168.7.202"
   labels:
     app: adguard
     app.kubernetes.io/name: adguard-home
+    l2.hermnet.org/pin: k3s-master   # selected by the pinned-k3s-master L2 policy
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local

@@ -1,0 +1,15 @@
+# TEMPLATE ONLY - placeholders, no real key. Never commit a filled-in copy.
+# Per node, create the encrypted file (sops encrypts on save; .sops.yaml rules):
+#   sops edit talos/nodes/<host>.tailscale.sops.yaml
+# and paste this document with TS_AUTHKEY / TS_HOSTNAME filled in.
+# Key: one tagged (tag:talos-node), pre-approved, single-use auth key per node.
+# Do NOT add --accept-routes: hermnet-connector advertises 192.168.7.0/24.
+apiVersion: v1alpha1
+kind: ExtensionServiceConfig
+name: tailscale
+environment:
+  - TS_AUTHKEY=tskey-auth-XXXX-PLACEHOLDER
+  - TS_HOSTNAME=talos-<host>
+  - TS_AUTH_ONCE=true
+  - TS_ACCEPT_DNS=false
+  - TS_EXTRA_ARGS=--advertise-tags=tag:talos-node

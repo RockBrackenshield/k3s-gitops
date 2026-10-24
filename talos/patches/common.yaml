@@ -1,0 +1,19 @@
+# common.yaml - all nodes (passed to `talosctl gen config --config-patch`).
+apiVersion: v1alpha1
+kind: KubeNetworkConfig
+podSubnets: [10.42.0.0/16]      # unchanged from k3s
+serviceSubnets: [10.43.0.0/16]  # unchanged from k3s
+
+# --- Log shipping: DISABLED INITIALLY (decided Oct 23, 2026). ---
+# Uncomment once a receiver is chosen (see docs/to-do.md). Host/ports are placeholders.
+# ---
+# machine:
+#   logging:
+#     destinations:
+#       - endpoint: udp://192.168.7.X:5514/
+#         format: json_lines
+# ---
+# apiVersion: v1alpha1
+# kind: KmsgLogConfig
+# name: remote-kmsg
+# url: udp://192.168.7.X:5515

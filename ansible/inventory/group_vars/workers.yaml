@@ -1,2 +1,0 @@
-# k3s-gitops/ansible/inventory/group_vars/workers.yaml
-k3s_role: agent

@@ -1,9 +1,11 @@
 # external-services/_shared/traefik-dynamic-config.yaml
+# Mounted into the Traefik pod at /config/dynamic (infrastructure/traefik/
+# values.yaml), so it must live in Traefik's namespace.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: traefik-external-services
-  namespace: kube-system
+  namespace: traefik
 data:
   dynamic.yaml: |
     http:
@@ -23,7 +25,7 @@ data:
           loadBalancer:
             servers:
               - url: "https://192.168.1.1:443"
-            serversTransport: skip-tls-verify@kubernetescrd
+            serversTransport: external-services-skip-tls-verify@kubernetescrd  # ServersTransport external-services/skip-tls-verify
         dockhand:
           loadBalancer:
             servers:

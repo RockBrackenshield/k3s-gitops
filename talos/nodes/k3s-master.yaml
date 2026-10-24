@@ -1,0 +1,37 @@
+apiVersion: v1alpha1
+kind: HostnameConfig
+hostname: k3s-master
+auto: "off"
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: end0                    # UNVERIFIED - confirm: talosctl get links --insecure
+addresses:
+  - address: 192.168.7.15/24
+routes:
+  - gateway: 192.168.7.1      # UNVERIFIED
+---
+# Longhorn creates its default disk only on nodes with this label
+# (createDefaultDiskLabeledNodes: true in infrastructure/longhorn).
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  node.longhorn.io/create-default-disk: "true"
+---
+# USB disk for Longhorn: partition u-longhorn, mounted at /var/mnt/longhorn.
+# BACK UP AND WIPE THE DISK FIRST (docs/runbook-restore.md).
+# REPLACE_WITH_USB_SERIAL: fill in the disk's serial before applying. Get it with
+#   lsblk -o NAME,SERIAL          (on the old host, before the move)
+# and cross-check with `talosctl -n 192.168.7.15 get disks` (SERIAL column).
+# Select by serial only - never by transport/bus or /dev/sdX.
+# `make apply` / `make upgrade` refuse to run while the placeholder is present.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: longhorn
+provisioning:
+  diskSelector:
+    match: disk.serial == "REPLACE_WITH_USB_SERIAL"
+  minSize: 100GB              # required; set near the disk size
+  grow: true
+filesystem:
+  type: xfs
