@@ -1,5 +1,5 @@
 # Assumption, not a live cluster query: per stored context the LB-IPAM pool
-# (192.168.7.200-220) currently has .202 (AdGuard), .203 (media
+# (192.168.7.200-220) currently has .202 (CoreDNS lan-dns), .203 (media
 # nfs-ganesha), and .205 (Traefik) taken. This claims the next free
 # sequential pair - .206 for Samba, .207 for this app's nfs-ganesha
 # service. Confirm nothing else has landed on those two before applying.

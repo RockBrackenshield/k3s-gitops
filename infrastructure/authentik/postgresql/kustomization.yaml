@@ -1,4 +1,4 @@
-# k3s-gitops/infrastructure/adguard/kustomization.yaml
+# k3s-gitops/infrastructure/authentik/postgresql/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

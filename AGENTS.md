@@ -33,14 +33,14 @@ an in-cluster Renovate CronJob (`infrastructure/renovate/`), with
   - `bootstrap/apps/` - one Argo CD `Application` per component/app
   - `bootstrap/infrastructure/` - Applications synced by `bootstrap/apps/infrastructure.yaml`
   - `bootstrap/argocd-apps/`, `bootstrap/crds/` - CRD Application + kustomization
-- `infrastructure/<component>/` - cluster services (adguard, argocd, authentik,
+- `infrastructure/<component>/` - cluster services (argocd, authentik, coredns,
   cert-manager, cilium, cloudnative-pg, external-services, longhorn,
   nfs-ganesha, reflector, renovate, sealed-secrets, snapshot-controller,
   storage, tailscale, tailscale-connector, traefik, volsync, zot); each has a
   `kustomization.yaml`, some have Helm `values*.yaml`
 - `apps/<app>/` - workloads (home-assistant, jellyfin, metube, paperless);
   `apps/jellyfin` uses `base/` + `overlays/{production,staging}`
-- `restore/` - one-off VolSync restore manifests
+- `restore/` - removed (it held only the AdGuard VolSync restore manifests; restores are described in `docs/runbook-restore.md`)
 - `holding/` - archived manifests intentionally NOT deployed (see `holding/README.md`)
 - `docs/` - restore runbook, sealed-secrets backup notes, to-do
 

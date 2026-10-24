@@ -51,7 +51,7 @@ data:
       // dockerfile     — Base images in any Dockerfiles added in future
       // github-actions — SHA-pinned actions in .github/workflows (digest + tag comment)
       // kubernetes     — Container image tags in Deployment and CronJob resources
-      //                  (adguard, jellyfin, etcd-backup, renovate itself)
+      //                  (jellyfin, etcd-backup, renovate itself)
       // kustomize      — Image overrides in kustomization.yaml files
       //                  (bootstrap/argocd tag@digest, jellyfin overlays)
       enabledManagers: [
