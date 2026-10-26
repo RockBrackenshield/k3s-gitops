@@ -6,8 +6,8 @@ kind: Kustomization
 namespace: argocd
 resources:
   - namespace.yaml
-  # Tag v3.5.6 = commit c2b1e3017e2cec86b122172e861dcd026453ae44
-  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.6/manifests/install.yaml
+  # Tag v3.5.6 = commit c2b1e3017e2cec86b122172e861dcd026453ae44 (pinned by SHA; tags can move)
+  - https://raw.githubusercontent.com/argoproj/argo-cd/c2b1e3017e2cec86b122172e861dcd026453ae44/manifests/install.yaml
 patches:
   # TLS terminates at Traefik (bootstrap/argocd-ingress.yaml).
   - target: {kind: ConfigMap, name: argocd-cmd-params-cm}
