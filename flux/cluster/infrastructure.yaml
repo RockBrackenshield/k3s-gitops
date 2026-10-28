@@ -39,46 +39,6 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: sealed-secrets
-  namespace: flux-system
-spec:
-  interval: 10m
-  timeout: 10m
-  path: ./flux/releases/sealed-secrets
-  prune: true
-  deletionPolicy: Orphan
-  wait: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  dependsOn:
-    - name: cilium
-    - name: gateway-api-crds
-    - name: external-snapshotter-crds
-    - name: traefik-crds
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: sealed-secrets-config
-  namespace: flux-system
-spec:
-  interval: 10m
-  timeout: 10m
-  path: ./infrastructure/sealed-secrets
-  prune: true
-  deletionPolicy: Orphan
-  wait: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  dependsOn:
-    - name: cilium
-    - name: sealed-secrets
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
   name: cert-manager
   namespace: flux-system
 spec:
@@ -93,7 +53,6 @@ spec:
     name: flux-system
   dependsOn:
     - name: cilium
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -113,6 +72,31 @@ spec:
   dependsOn:
     - name: cilium
     - name: cert-manager
+    - name: cert-manager-secrets
+  patches:
+    # Staging issuer until the switch PR removes this patch (plan v3 section 1).
+    - target:
+        kind: Certificate
+        name: wildcard-hermnet-org
+      patch: |
+        apiVersion: cert-manager.io/v1
+        kind: Certificate
+        metadata:
+          name: wildcard-hermnet-org
+        spec:
+          issuerRef:
+            name: letsencrypt-staging
+            kind: ClusterIssuer
+    # Old cluster's SealedSecret; the new cluster has no SealedSecret CRD. Replaced by flux/secrets/cert-manager.
+    - target:
+        kind: SealedSecret
+        name: cloudflare-api-token
+      patch: |
+        $patch: delete
+        apiVersion: bitnami.com/v1alpha1
+        kind: SealedSecret
+        metadata:
+          name: cloudflare-api-token
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -131,7 +115,6 @@ spec:
     name: flux-system
   dependsOn:
     - name: cilium
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -170,7 +153,6 @@ spec:
     name: flux-system
   dependsOn:
     - name: cilium
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -209,7 +191,6 @@ spec:
   dependsOn:
     - name: cilium
     - name: external-snapshotter-crds
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -229,7 +210,6 @@ spec:
   dependsOn:
     - name: cilium
     - name: traefik-crds
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -291,7 +271,37 @@ spec:
     - name: traefik-config
     - name: longhorn-config
     - name: volsync
-    - name: sealed-secrets-config
+    - name: authentik-secrets
+  patches:
+    # Old cluster's SealedSecrets; replaced by flux/secrets/authentik (fresh values, no DB restore).
+    - target:
+        kind: SealedSecret
+        name: authentik-config
+      patch: |
+        $patch: delete
+        apiVersion: bitnami.com/v1alpha1
+        kind: SealedSecret
+        metadata:
+          name: authentik-config
+    - target:
+        kind: SealedSecret
+        name: authentik-postgresql-credentials
+      patch: |
+        $patch: delete
+        apiVersion: bitnami.com/v1alpha1
+        kind: SealedSecret
+        metadata:
+          name: authentik-postgresql-credentials
+    # The namespace is created by authentik-secrets so the secrets exist before the workloads (no wait deadlock).
+    - target:
+        kind: Namespace
+        name: authentik
+      patch: |
+        $patch: delete
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: authentik
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -310,7 +320,6 @@ spec:
     name: flux-system
   dependsOn:
     - name: cilium
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -330,6 +339,18 @@ spec:
   dependsOn:
     - name: cilium
     - name: volsync
+    - name: volsync-secrets
+  patches:
+    # Old cluster's SealedSecret; replaced by flux/secrets/volsync.
+    - target:
+        kind: SealedSecret
+        name: shared-b2-repo
+      patch: |
+        $patch: delete
+        apiVersion: bitnami.com/v1alpha1
+        kind: SealedSecret
+        metadata:
+          name: shared-b2-repo
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -349,7 +370,6 @@ spec:
   dependsOn:
     - name: cilium
     - name: cert-manager-config
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -369,6 +389,18 @@ spec:
   dependsOn:
     - name: cilium
     - name: cloudnative-pg-operator
+    - name: cnpg-secrets
+  patches:
+    # Old cluster's SealedSecret; replaced by flux/secrets/cnpg.
+    - target:
+        kind: SealedSecret
+        name: cnpg-barman-b2-credentials
+      patch: |
+        $patch: delete
+        apiVersion: bitnami.com/v1alpha1
+        kind: SealedSecret
+        metadata:
+          name: cnpg-barman-b2-credentials
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -407,25 +439,6 @@ spec:
   dependsOn:
     - name: cilium
     - name: nfs-ganesha-config
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: renovate
-  namespace: flux-system
-spec:
-  interval: 10m
-  timeout: 10m
-  path: ./infrastructure/renovate
-  prune: true
-  deletionPolicy: Orphan
-  wait: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  dependsOn:
-    - name: cilium
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -483,64 +496,6 @@ spec:
     name: flux-system
   dependsOn:
     - name: cilium
-    - name: sealed-secrets-config
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: tailscale-operator-config
-  namespace: flux-system
-spec:
-  interval: 10m
-  timeout: 10m
-  path: ./infrastructure/tailscale
-  prune: true
-  deletionPolicy: Orphan
-  wait: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  dependsOn:
-    - name: cilium
-    - name: sealed-secrets-config
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: tailscale-operator
-  namespace: flux-system
-spec:
-  interval: 10m
-  timeout: 10m
-  path: ./flux/releases/tailscale-operator
-  prune: true
-  deletionPolicy: Orphan
-  wait: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  dependsOn:
-    - name: cilium
-    - name: tailscale-operator-config
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: tailscale-connector
-  namespace: flux-system
-spec:
-  interval: 10m
-  timeout: 10m
-  path: ./infrastructure/tailscale-connector
-  prune: true
-  deletionPolicy: Orphan
-  wait: true
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  dependsOn:
-    - name: cilium
-    - name: tailscale-operator
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -579,7 +534,6 @@ spec:
   dependsOn:
     - name: cilium
     - name: longhorn-config
-    - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

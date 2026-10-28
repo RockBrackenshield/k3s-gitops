@@ -11,15 +11,6 @@ spec:
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: sealed-secrets
-  namespace: flux-system
-spec:
-  interval: 1h
-  url: https://bitnami.github.io/sealed-secrets
----
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
   name: jetstack
   namespace: flux-system
 spec:
@@ -88,15 +79,6 @@ metadata:
 spec:
   interval: 1h
   url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-smb/master/charts
----
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
-  name: tailscale
-  namespace: flux-system
-spec:
-  interval: 1h
-  url: https://pkgs.tailscale.com/helmcharts
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
