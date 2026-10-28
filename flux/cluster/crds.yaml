@@ -1,0 +1,87 @@
+# CRD Kustomizations. Never pruned: deleting a CRD cascades to every custom resource of that kind.
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: gateway-api-crds
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./config/crd/standard
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: gateway-api
+  patches:
+    - target:
+        kind: CustomResourceDefinition
+        name: listenersets.gateway.networking.k8s.io
+      patch: |
+        $patch: delete
+        apiVersion: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        metadata:
+          name: not-used
+    - target:
+        kind: CustomResourceDefinition
+        name: tcproutes.gateway.networking.k8s.io
+      patch: |
+        $patch: delete
+        apiVersion: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        metadata:
+          name: not-used
+    - target:
+        kind: CustomResourceDefinition
+        name: udproutes.gateway.networking.k8s.io
+      patch: |
+        $patch: delete
+        apiVersion: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        metadata:
+          name: not-used
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: external-snapshotter-crds
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./client/config/crd
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: external-snapshotter
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: traefik-crds
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./traefik/crds
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: traefik-helm-chart
+  patches:
+    - target:
+        kind: CustomResourceDefinition
+        name: .*\.hub\.traefik\.io
+      patch: |
+        $patch: delete
+        apiVersion: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        metadata:
+          name: not-used

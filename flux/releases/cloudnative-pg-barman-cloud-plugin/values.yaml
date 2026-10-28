@@ -1,0 +1,14 @@
+# Values for the cnpg/plugin-barman-cloud chart.
+# Reference: https://cloudnative-pg.io/plugin-barman-cloud/docs/installation/
+#
+# Requires cert-manager to already be present in the cluster (it is) — the
+# chart provisions a self-signed Issuer + Certificates for operator<->plugin
+# TLS automatically.
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

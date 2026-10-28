@@ -1,0 +1,144 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: cilium
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://helm.cilium.io
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: sealed-secrets
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://bitnami.github.io/sealed-secrets
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: jetstack
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://charts.jetstack.io
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: longhorn
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://charts.longhorn.io
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: emberstack
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://emberstack.github.io/helm-charts
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: traefik
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://traefik.github.io/charts
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: backube
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://backube.github.io/helm-charts/
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: cloudnative-pg
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://cloudnative-pg.github.io/charts
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: nfs-ganesha
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner/
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: csi-driver-smb
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-smb/master/charts
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: tailscale
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://pkgs.tailscale.com/helmcharts
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: zot
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://zotregistry.dev/helm-charts
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: gateway-api
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://github.com/kubernetes-sigs/gateway-api
+  ref:
+    tag: v1.6.3
+    commit: c0836133e24073fcdcdbb1713aba3cc73a89d0b5
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: external-snapshotter
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://github.com/kubernetes-csi/external-snapshotter
+  ref:
+    tag: v8.2.0
+    commit: 0f215370c7ca3eeef4ab7028824d3bc66e1f63bd
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: traefik-helm-chart
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://github.com/traefik/traefik-helm-chart
+  ref:
+    tag: v42.1.3
+    commit: 0ecd081a6e7db085db3bd41e98cd0e4938155f30

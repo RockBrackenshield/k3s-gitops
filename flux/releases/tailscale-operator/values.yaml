@@ -1,0 +1,8 @@
+operatorConfig:
+  hostname: hermnet-operator
+  logging: info
+# oauth.clientId and oauth.clientSecret are intentionally omitted.
+# The operator will use the pre-existing operator-oauth Secret
+# created by the SealedSecret in infrastructure/tailscale/.
+# Passing these values here would cause the Helm chart to manage
+# the Secret directly, conflicting with Sealed Secrets ownership.

@@ -1,0 +1,592 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cilium
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/cilium
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: gateway-api-crds
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cilium-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/cilium
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: cilium
+    - name: traefik-crds
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: sealed-secrets
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/sealed-secrets
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: gateway-api-crds
+    - name: external-snapshotter-crds
+    - name: traefik-crds
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: sealed-secrets-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/sealed-secrets
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cert-manager
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/cert-manager
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cert-manager-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/cert-manager
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: cert-manager
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: longhorn
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/longhorn
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: longhorn-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/longhorn
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: longhorn
+    - name: external-snapshotter-crds
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: reflector
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/reflector
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: reflector-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/reflector
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: reflector
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: snapshot-controller
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/snapshot-controller
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: external-snapshotter-crds
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: traefik
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/traefik
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: traefik-crds
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: traefik-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/traefik
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: traefik
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: adguard
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/adguard
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: traefik-config
+    - name: longhorn-config
+    - name: volsync
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: authentik
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/authentik
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: traefik-config
+    - name: longhorn-config
+    - name: volsync
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: volsync
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/volsync
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: volsync-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/volsync
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: volsync
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cloudnative-pg-operator
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/cloudnative-pg-operator
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: cert-manager-config
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cloudnative-pg-operator-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/cloudnative-pg
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: cloudnative-pg-operator
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: nfs-ganesha-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/nfs-ganesha
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: longhorn-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: nfs-ganesha
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/nfs-ganesha
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: nfs-ganesha-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: renovate
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/renovate
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: storage
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/storage
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: longhorn-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cloudnative-pg-barman-cloud-plugin
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/cloudnative-pg-barman-cloud-plugin
+  prune: false
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: cloudnative-pg-operator-config
+    - name: cert-manager-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: csi-driver-smb
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/csi-driver-smb
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: tailscale-operator-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/tailscale
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: tailscale-operator
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/tailscale-operator
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: tailscale-operator-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: tailscale-connector
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/tailscale-connector
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: tailscale-operator
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: paperless-nfs-ganesha
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/paperless-nfs-ganesha
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: longhorn-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: zot-config
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/zot
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: longhorn-config
+    - name: sealed-secrets-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: zot
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./flux/releases/zot
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: zot-config
+    - name: traefik-config
+    - name: cert-manager-config
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: external-services
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  path: ./infrastructure/external-services
+  prune: true
+  deletionPolicy: Orphan
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: traefik-config
