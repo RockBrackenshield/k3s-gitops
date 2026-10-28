@@ -7,6 +7,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
     argocd.argoproj.io/sync-options: Prune=false
+    kustomize.toolkit.fluxcd.io/prune: disabled
   labels:
     app: zot
     app.kubernetes.io/name: zot-registry

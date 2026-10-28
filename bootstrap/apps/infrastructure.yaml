@@ -7,6 +7,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"        # discover infra Applications before app Applications
     argocd.argoproj.io/sync-options: "Prune=false"  # protect infra root from cascading prune
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   project: default
   source:

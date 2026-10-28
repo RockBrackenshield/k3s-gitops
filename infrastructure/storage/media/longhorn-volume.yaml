@@ -8,6 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: "Prune=false"
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   size: "549755813888"  # ~500Gi
   numberOfReplicas: 1

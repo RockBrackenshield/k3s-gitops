@@ -10,6 +10,7 @@ metadata:
     # the kustomization. Does NOT protect against Application-level deletion
     # (resources-finalizer handles that) — VolSync B2 backup is the safety net.
     argocd.argoproj.io/sync-options: Prune=false
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   accessModes:
     - ReadWriteOnce

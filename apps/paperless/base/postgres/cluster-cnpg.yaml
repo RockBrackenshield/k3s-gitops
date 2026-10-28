@@ -17,6 +17,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
     argocd.argoproj.io/sync-options: Prune=false # data-bearing
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   # Single Longhorn-capable node today (the master's USB-backed volume) means
   # true HA (instances: 3 + podAntiAffinity across nodes) isn't achievable
