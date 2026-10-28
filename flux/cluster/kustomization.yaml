@@ -4,5 +4,5 @@ resources:
   - sources.yaml
   - crds.yaml
   - infrastructure.yaml
-  - secrets.yaml
+  - secrets-kustomizations.yaml
   - apps.yaml
