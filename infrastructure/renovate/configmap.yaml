@@ -49,6 +49,9 @@ data:
       //                  git tags (gateway-api v1.6.3, traefik CRDs v42.1.3,
       //                  external-snapshotter). Needs managerFilePatterns.
       // dockerfile     — Base images in any Dockerfiles added in future
+      // flux           — Flux HelmRelease chart versions and GitRepository tags
+      //                  under flux/ and clusters/ (the Argo CD `argocd`
+      //                  manager is removed in the Argo cleanup PR).
       // github-actions — SHA-pinned actions in .github/workflows (digest + tag comment)
       // kubernetes     — Container image tags in Deployment and CronJob resources
       //                  (adguard, jellyfin, etcd-backup, renovate itself)
@@ -58,12 +61,16 @@ data:
         'argocd',
         'custom.regex',
         'dockerfile',
+        'flux',
         'github-actions',
         'kubernetes',
         'kustomize',
       ],
       argocd: {
         managerFilePatterns: ['/^bootstrap/.+\\.ya?ml$/'],
+      },
+      flux: {
+        managerFilePatterns: ['/^flux/.+\\.ya?ml$/', '/^clusters/.+\\.ya?ml$/'],
       },
       kubernetes: {
         managerFilePatterns: ['/^(apps|infrastructure)/.+\\.ya?ml$/'],
@@ -118,6 +125,26 @@ data:
           datasourceTemplate: 'github-releases',
           depNameTemplate: 'kubernetes-csi/external-snapshotter',
         },
+
+        // Flux version. REVIEWED PRs only (see the packageRule below). The
+        // upstream install.yaml carries no version string and must stay
+        // byte-for-byte (its sha256 is CI-checked), so the version is read from
+        // a `# Flux Version: vX.Y.Z` comment line in
+        // .github/flux-install.sha256 (or a header in gotk-components.yaml if
+        // one is ever added). A Flux bump also changes the controller image
+        // digests in clusters/homelab/flux-system/kustomization.yaml by hand.
+        {
+          customType: 'regex',
+          managerFilePatterns: [
+            '/^clusters/homelab/flux-system/gotk-components\\.yaml$/',
+            '/^\\.github/flux-install\\.sha256$/',
+          ],
+          matchStrings: [
+            '#\\s*Flux Version:\\s*(?<currentValue>v\\d+\\.\\d+\\.\\d+)',
+          ],
+          datasourceTemplate: 'github-releases',
+          depNameTemplate: 'fluxcd/flux2',
+        },
       ],
 
       // ── Package rules ──────────────────────────────────────────────────────
@@ -156,6 +183,27 @@ data:
           matchUpdateTypes: ['patch', 'minor'],
           groupName: 'all non-major updates',
           automerge: false,
+        },
+
+        // Flux itself: its own PR, never merged automatically, and a reminder
+        // that Flux cannot roll back its own upgrade.
+        {
+          matchPackageNames: ['fluxcd/flux2'],
+          groupName: 'flux',
+          automerge: false,
+          prBodyNotes: [
+            "Flux self-upgrade: after merge, run the self-upgrade health check; a Flux upgrade can't roll itself back.",
+          ],
+        },
+
+        // Flux HelmRelease chart bumps: charts with `upgrade.crds: Skip` do
+        // not upgrade their CRDs.
+        {
+          matchManagers: ['flux'],
+          matchDatasources: ['helm', 'docker'],
+          prBodyNotes: [
+            "Check whether this chart's `crds/` changed; if so, set `upgrade.crds: CreateReplace` for this upgrade.",
+          ],
         },
 
         // Major updates always produce individual PRs for deliberate review.
