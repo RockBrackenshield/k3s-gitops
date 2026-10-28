@@ -47,3 +47,8 @@ patches:
       kind: Deployment
       metadata:
         name: unused
+  - target:
+      kind: Deployment
+      name: helm-controller
+    patch: |
+      - {op: add, path: /spec/template/spec/containers/0/args/-, value: --concurrent=2}
