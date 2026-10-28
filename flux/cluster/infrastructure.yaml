@@ -14,8 +14,6 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  dependsOn:
-    - name: gateway-api-crds
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -52,6 +50,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: gateway-api-crds
     - name: external-snapshotter-crds
     - name: traefik-crds
@@ -72,6 +71,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -90,6 +90,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -108,6 +109,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: cert-manager
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -126,6 +128,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -144,6 +147,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: longhorn
     - name: external-snapshotter-crds
 ---
@@ -163,6 +167,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -181,6 +186,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: reflector
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -199,6 +205,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: external-snapshotter-crds
     - name: sealed-secrets-config
 ---
@@ -218,6 +225,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: traefik-crds
     - name: sealed-secrets-config
 ---
@@ -237,6 +245,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: traefik
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -255,6 +264,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: traefik-config
     - name: longhorn-config
     - name: volsync
@@ -275,6 +285,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: traefik-config
     - name: longhorn-config
     - name: volsync
@@ -296,6 +307,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -314,6 +326,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: volsync
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -332,6 +345,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: cert-manager-config
     - name: sealed-secrets-config
 ---
@@ -351,6 +365,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: cloudnative-pg-operator
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -369,6 +384,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: longhorn-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -387,6 +403,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: nfs-ganesha-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -405,6 +422,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -423,6 +441,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: longhorn-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -441,6 +460,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: cloudnative-pg-operator-config
     - name: cert-manager-config
 ---
@@ -460,6 +480,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -478,6 +499,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: sealed-secrets-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -496,6 +518,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: tailscale-operator-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -514,6 +537,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: tailscale-operator
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -532,6 +556,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: longhorn-config
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -550,6 +575,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: longhorn-config
     - name: sealed-secrets-config
 ---
@@ -569,6 +595,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: zot-config
     - name: traefik-config
     - name: cert-manager-config
@@ -589,4 +616,5 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: cilium
     - name: traefik-config
