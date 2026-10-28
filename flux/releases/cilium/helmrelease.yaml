@@ -9,7 +9,6 @@ spec:
   releaseName: cilium
   targetNamespace: kube-system
   storageNamespace: kube-system
-  suspend: true
   chart:
     spec:
       chart: cilium
