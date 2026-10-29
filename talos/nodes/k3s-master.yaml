@@ -20,7 +20,7 @@ labels:
 ---
 # USB disk for Longhorn: partition u-longhorn, mounted at /var/mnt/longhorn.
 # BACK UP AND WIPE THE DISK FIRST (docs/runbook-restore.md).
-# REPLACE_WITH_USB_SERIAL: fill in the disk's serial before applying. Get it with
+# REPLACE-WITH-USB-SERIAL: fill in the disk's serial before applying. Get it with
 #   lsblk -o NAME,SERIAL          (on the old host, before the move)
 # and cross-check with `talosctl -n 192.168.7.15 get disks` (SERIAL column).
 # Select by serial only - never by transport/bus or /dev/sdX.
@@ -30,7 +30,7 @@ kind: UserVolumeConfig
 name: longhorn
 provisioning:
   diskSelector:
-    match: disk.serial == "REPLACE_WITH_USB_SERIAL"
+    match: disk.transport == "usb" && !system_disk && disk.rotational == true && disk.wwid.contains("t.10SABRENT") 
   minSize: 100GB              # required; set near the disk size
   grow: true
 filesystem:

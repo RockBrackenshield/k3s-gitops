@@ -8,7 +8,7 @@
 creation_rules:
   - path_regex: ^talos/secrets\.sops\.yaml$
     age: >-
-      age1REPLACE_ME_WITH_YOUR_AGE_PUBLIC_KEY
+      age1pqywwqukuqw85q8gfsey9xwpn8z8z6xm56k0anjvel78d3h7pd6qqnqrdl
   - path_regex: ^talos/.*\.sops\.yaml$   # nodes/*.tailscale.sops.yaml etc.
     age: >-
-      age1REPLACE_ME_WITH_YOUR_AGE_PUBLIC_KEY
+      age1pqywwqukuqw85q8gfsey9xwpn8z8z6xm56k0anjvel78d3h7pd6qqnqrdl
