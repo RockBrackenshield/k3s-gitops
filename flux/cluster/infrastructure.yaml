@@ -62,7 +62,7 @@ metadata:
 spec:
   interval: 10m
   timeout: 10m
-  path: ./infrastructure/cert-manager
+  path: ./flux/overlays/cert-manager
   prune: true
   deletionPolicy: Orphan
   wait: true
@@ -87,16 +87,6 @@ spec:
           issuerRef:
             name: letsencrypt-staging
             kind: ClusterIssuer
-    # Old cluster's SealedSecret; the new cluster has no SealedSecret CRD. Replaced by flux/secrets/cert-manager.
-    - target:
-        kind: SealedSecret
-        name: cloudflare-api-token
-      patch: |
-        $patch: delete
-        apiVersion: bitnami.com/v1alpha1
-        kind: SealedSecret
-        metadata:
-          name: cloudflare-api-token
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -259,7 +249,7 @@ metadata:
 spec:
   interval: 10m
   timeout: 10m
-  path: ./infrastructure/authentik
+  path: ./flux/overlays/authentik
   prune: true
   deletionPolicy: Orphan
   wait: true
@@ -272,36 +262,6 @@ spec:
     - name: longhorn-config
     - name: volsync
     - name: authentik-secrets
-  patches:
-    # Old cluster's SealedSecrets; replaced by flux/secrets/authentik (fresh values, no DB restore).
-    - target:
-        kind: SealedSecret
-        name: authentik-config
-      patch: |
-        $patch: delete
-        apiVersion: bitnami.com/v1alpha1
-        kind: SealedSecret
-        metadata:
-          name: authentik-config
-    - target:
-        kind: SealedSecret
-        name: authentik-postgresql-credentials
-      patch: |
-        $patch: delete
-        apiVersion: bitnami.com/v1alpha1
-        kind: SealedSecret
-        metadata:
-          name: authentik-postgresql-credentials
-    # The namespace is created by authentik-secrets so the secrets exist before the workloads (no wait deadlock).
-    - target:
-        kind: Namespace
-        name: authentik
-      patch: |
-        $patch: delete
-        apiVersion: v1
-        kind: Namespace
-        metadata:
-          name: authentik
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -329,7 +289,7 @@ metadata:
 spec:
   interval: 10m
   timeout: 10m
-  path: ./infrastructure/volsync
+  path: ./flux/overlays/volsync
   prune: true
   deletionPolicy: Orphan
   wait: true
@@ -340,17 +300,6 @@ spec:
     - name: cilium
     - name: volsync
     - name: volsync-secrets
-  patches:
-    # Old cluster's SealedSecret; replaced by flux/secrets/volsync.
-    - target:
-        kind: SealedSecret
-        name: shared-b2-repo
-      patch: |
-        $patch: delete
-        apiVersion: bitnami.com/v1alpha1
-        kind: SealedSecret
-        metadata:
-          name: shared-b2-repo
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -379,7 +328,7 @@ metadata:
 spec:
   interval: 10m
   timeout: 10m
-  path: ./infrastructure/cloudnative-pg
+  path: ./flux/overlays/cnpg
   prune: false
   deletionPolicy: Orphan
   wait: true
@@ -390,17 +339,6 @@ spec:
     - name: cilium
     - name: cloudnative-pg-operator
     - name: cnpg-secrets
-  patches:
-    # Old cluster's SealedSecret; replaced by flux/secrets/cnpg.
-    - target:
-        kind: SealedSecret
-        name: cnpg-barman-b2-credentials
-      patch: |
-        $patch: delete
-        apiVersion: bitnami.com/v1alpha1
-        kind: SealedSecret
-        metadata:
-          name: cnpg-barman-b2-credentials
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

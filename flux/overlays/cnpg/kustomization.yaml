@@ -1,0 +1,17 @@
+# Overlay for the NEW cluster only (Flux Kustomization `cloudnative-pg-operator-config`).
+# Base: infrastructure/cloudnative-pg, unchanged; the old cluster's Argo CD keeps syncing it.
+# Removes the SealedSecret; the Secret comes from flux/secrets/cnpg.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../infrastructure/cloudnative-pg
+patches:
+  - target:
+      kind: SealedSecret
+      name: cnpg-barman-b2-credentials
+    patch: |
+      $patch: delete
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: cnpg-barman-b2-credentials

@@ -1,0 +1,17 @@
+# Overlay for the NEW cluster only (Flux Kustomization `volsync-config`).
+# Base: infrastructure/volsync, unchanged; the old cluster's Argo CD keeps syncing it.
+# Removes the SealedSecret; the Secret comes from flux/secrets/volsync.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../infrastructure/volsync
+patches:
+  - target:
+      kind: SealedSecret
+      name: shared-b2-repo
+    patch: |
+      $patch: delete
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: shared-b2-repo
