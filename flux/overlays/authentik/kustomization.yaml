@@ -1,0 +1,36 @@
+# Overlay for the NEW cluster only (Flux Kustomization `authentik`).
+# Base: infrastructure/authentik, unchanged; the old cluster's Argo CD keeps syncing it.
+# Removes both SealedSecrets (from flux/secrets/authentik) and the Namespace, which
+# flux/secrets/authentik/namespace.yaml (Kustomization authentik-secrets) owns instead.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../infrastructure/authentik
+patches:
+  - target:
+      kind: SealedSecret
+      name: authentik-config
+    patch: |
+      $patch: delete
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: authentik-config
+  - target:
+      kind: SealedSecret
+      name: authentik-postgresql-credentials
+    patch: |
+      $patch: delete
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: authentik-postgresql-credentials
+  - target:
+      kind: Namespace
+      name: authentik
+    patch: |
+      $patch: delete
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: authentik
