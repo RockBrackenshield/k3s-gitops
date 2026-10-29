@@ -1,4 +1,0 @@
-# Defaults are fine for a single-purpose client driver. controller
-# runs with hostNetwork: true out of the box (required for
-# CreateVolume/mount operations) - no override needed for that.
-externalSnapshotter: false
