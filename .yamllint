@@ -6,6 +6,9 @@
 # dedicated PR that also fixes the manifests.
 extends: default
 
+ignore: |
+  clusters/homelab/flux-system/gotk-components.yaml
+
 rules:
   # Kept as errors (from `default`): syntax errors are always fatal,
   # key-duplicates, anchors, indentation, hyphens, colons, empty-lines, ...

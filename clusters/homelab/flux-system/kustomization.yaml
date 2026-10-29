@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - gotk-components.yaml
+  - gotk-sync.yaml
+# Flux v2.9.6 controller images pinned by digest (Appendix D, B3).
+images:
+  - name: ghcr.io/fluxcd/source-controller
+    newTag: v1.9.6
+    digest: sha256:6a6693172589f8ff26123a231d5fa6ceb194a6efb4dc647cdf057c959f76a2e3
+  - name: ghcr.io/fluxcd/kustomize-controller
+    newTag: v1.9.6
+    digest: sha256:2ebeaa341da77d52b6abbbba5efcee0450d47f8b42f0e6f33b08f9020262d606
+  - name: ghcr.io/fluxcd/helm-controller
+    newTag: v1.6.5
+    digest: sha256:0d52fff5c4d476277b8fcb6beb9041e269adb5db943fe69f5a806ea0c92b1511
+  - name: ghcr.io/fluxcd/notification-controller
+    newTag: v1.9.4
+    digest: sha256:840f318265ee26f0d2c48a158bf7896b22aa4e998e320a18646309f0e40b15da
+# Image automation and source-watcher are not used (image automation dropped, D4).
+# Their CRDs and ServiceAccounts stay in gotk-components.yaml and are harmless.
+patches:
+  - target:
+      kind: Deployment
+      name: image-reflector-controller
+    patch: |
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: unused
+  - target:
+      kind: Deployment
+      name: image-automation-controller
+    patch: |
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: unused
+  - target:
+      kind: Deployment
+      name: source-watcher
+    patch: |
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: unused
+  - target:
+      kind: Deployment
+      name: helm-controller
+    patch: |
+      - {op: add, path: /spec/template/spec/containers/0/args/-, value: --concurrent=2}
