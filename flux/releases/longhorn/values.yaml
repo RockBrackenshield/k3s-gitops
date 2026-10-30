@@ -1,0 +1,44 @@
+# k3s-gitops/infrastructure/longhorn/values.yaml
+# ---
+# Values for the longhorn/longhorn chart 1.13.0, deployed by
+# bootstrap/apps/longhorn.yaml (Argo Helm app; replaces the k3s HelmChart).
+#
+# Single-disk layout: the Pi 5 USB disk is the Talos UserVolumeConfig
+# "longhorn" (talos/nodes/k3s-master.yaml), mounted at /var/mnt/longhorn and
+# propagated to the kubelet. Only k3s-master carries the node label
+# node.longhorn.io/create-default-disk: "true" (Talos nodeLabels), so with
+# createDefaultDiskLabeledNodes the workers get no Longhorn disk.
+# One disk => replicas 1 everywhere (no redundancy; backups are the only
+# protection). See README "Adding a disk later" before raising replicas.
+#
+# Images: chart-default tags (existing component, existing style); digest
+# pinning is a listed follow-up.
+defaultSettings:
+  defaultDataPath: /var/mnt/longhorn
+  createDefaultDiskLabeledNodes: true
+  replicaSoftAntiAffinity: true
+  storageMinimalAvailablePercentage: 10
+  defaultReplicaCount: 1
+persistence:
+  # longhorn-usb (storage-class.yaml) is the default StorageClass; the
+  # chart's own "longhorn" class stays non-default.
+  defaultClass: false
+  defaultClassReplicaCount: 1
+  defaultDataLocality: disabled
+  reclaimPolicy: Retain
+# Argo CD renders with `helm template`; Longhorn says to disable the
+# pre-upgrade hook job for GitOps installs.
+preUpgradeChecker:
+  jobEnabled: false
+ingress:
+  enabled: false   # UI via ingressroute.yaml
+service:
+  ui:
+    type: ClusterIP
+  manager:
+    type: ClusterIP
+csi:
+  attacherReplicaCount: 1
+  provisionerReplicaCount: 1
+  resizerReplicaCount: 1
+  snapshotterReplicaCount: 1
